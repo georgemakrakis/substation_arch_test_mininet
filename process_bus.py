@@ -14,5 +14,5 @@ class process_bus(app_manager.RyuApp):
     OFP_VERSIONS = [ofproto_v1_3.OFP_VERSION]
 
     def __init__(self, *args, **kwargs):
-        super(L2_switch, self).__init__(*args, **kwargs)
+        super(process_bus, self).__init__(*args, **kwargs)
         self.mac_to_port = {} # The mac address table is empty initially.

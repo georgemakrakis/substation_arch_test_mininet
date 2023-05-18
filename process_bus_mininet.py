@@ -23,11 +23,11 @@ class process_bus( Topo ):
         # TODO: Maybe use a better structure instead of an array to have those values? 
         # LIke a tuple of IP and MAC?
         self.TMUs = {
-            "tmu1": [],
-            "tmu2": [],
-            "tmu3": [],
-            "tmu4": [],
-            "tmu5": []
+            "tidl1": [],
+            "tidl2": [],
+            "tidl3": [],
+            "tidl4": [],
+            "tidl5": []
         }
 
         self.IEDs = {
