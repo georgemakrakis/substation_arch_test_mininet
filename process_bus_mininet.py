@@ -47,7 +47,7 @@ class process_bus( Topo ):
         TMUs_keys = list(self.TMUs.keys())
         IEDs_keys = list(self.IEDs.keys())
 
-        switch1 = self.addSwitch( "s1" )
+        switch1 = self.addSwitch( "s1", protocols=["OpenFlow13"] )
         
         # Assign IPs and MACs, add hosts and links
         for i in range(5):
