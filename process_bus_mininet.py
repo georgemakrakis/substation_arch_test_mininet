@@ -23,24 +23,25 @@ class process_bus( Topo ):
         # TODO: Maybe use a better structure instead of an array to have those values? 
         # LIke a tuple of IP and MAC?
         self.TMUs = {
-            "tidl1": [],
-            "tidl2": [],
-            "tidl3": [],
-            "tidl4": [],
-            "tidl5": []
+            "tmu1": [],
+            "tmu2": [],
+            "tmu3": [],
+            "tmu4": [],
+            "tmu5": []
         }
 
         self.IEDs = {
-            "451_11_12": [],
-            "387_11_12": [],
-            "451_5_7": [],
-            "351_9": [],
-            "351_10": [],
-            "487B_4_6_8": [],
-            "487E_1_3": [],
-            "787_2_4": [],
+            "451_1": [],
+            # "387_1": [], # This one has only serial connection to the RTAC
+            "451_2": [],
+            "351_2": [],
+            "351_1": [],
+            "487B": [],
+            "487E": [],
+            "787_2": [],
             "651R_1": [],
-            "651R_2":[]
+            "651R_2":[],
+            # "387_2": [] # This one has only serial connection to the RTAC
         }
 
 
@@ -50,7 +51,7 @@ class process_bus( Topo ):
         switch1 = self.addSwitch( "s1", protocols=["OpenFlow13"] )
         
         # Assign IPs and MACs, add hosts and links
-        for i in range(5):
+        for i in range(len(self.TMUs)):
              # +2 to start from .2 address
             j = i + 2
             self.TMUs[TMUs_keys[i]].append(f"192.168.1.{j}/24")
@@ -59,7 +60,7 @@ class process_bus( Topo ):
             TMU = self.addHost( TMUs_keys[i], ip=self.TMUs[TMUs_keys[i]][0], mac=self.TMUs[TMUs_keys[i]][1] )
             self.addLink( TMU, switch1 )
         
-        for i in range(10):
+        for i in range(len(self.IEDs)):
             # +5 casue we did already setup 5 TMUs in this subnet
             j = i + 5
             self.IEDs[IEDs_keys[i]].append(f"192.168.1.{j}/24")
