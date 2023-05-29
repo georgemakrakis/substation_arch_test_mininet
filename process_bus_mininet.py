@@ -41,6 +41,7 @@ class process_bus( Topo ):
             "787_2": [],
             "651R_1": [],
             "651R_2":[],
+            "RTAC":[],
             # "387_2": [] # This one has only serial connection to the RTAC
         }
 
@@ -54,8 +55,14 @@ class process_bus( Topo ):
         for i in range(len(self.TMUs)):
              # +2 to start from .2 address
             j = i + 2
+
+            if j > 9:
+                j_str = f"{i + 5}"
+            else:
+                j_str = f"0{i + 5}"
+            
             self.TMUs[TMUs_keys[i]].append(f"192.168.1.{j}/24")
-            self.TMUs[TMUs_keys[i]].append(f"00:00:00:00:00:0{j}")
+            self.TMUs[TMUs_keys[i]].append(f"00:00:00:00:00:0{j_str}")
 
             TMU = self.addHost( TMUs_keys[i], ip=self.TMUs[TMUs_keys[i]][0], mac=self.TMUs[TMUs_keys[i]][1] )
             self.addLink( TMU, switch1 )
@@ -63,8 +70,14 @@ class process_bus( Topo ):
         for i in range(len(self.IEDs)):
             # +5 casue we did already setup 5 TMUs in this subnet
             j = i + 5
+            
+            if j > 9:
+                j_str = f"{i + 5}"
+            else:
+                j_str = f"0{i + 5}"
+
             self.IEDs[IEDs_keys[i]].append(f"192.168.1.{j}/24")
-            self.IEDs[IEDs_keys[i]].append(f"00:00:00:00:00:0{j}")
+            self.IEDs[IEDs_keys[i]].append(f"00:00:00:00:00:{j_str}")
 
             IED = self.addHost( IEDs_keys[i], ip=self.IEDs[IEDs_keys[i]][0], mac=self.IEDs[IEDs_keys[i]][1] )
             self.addLink( IED, switch1 )

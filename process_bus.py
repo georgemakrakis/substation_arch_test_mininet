@@ -45,31 +45,79 @@ class process_bus(app_manager.RyuApp):
         # TODO: Shall we create an automated way using a few loops to apply all the default rules that we want?
         # Do it for ICMP first as an example until we figure out the usage of protocols.
 
-        # 351_1 cannot talk to 351_2
-        match = parser.OFPMatch(
-            eth_src=("00:00:00:00:00:08"),
-            eth_dst=("00:00:00:00:00:07")
-        )
-        # Empty actions should apply to drop the packet
-        actions = []
-        inst = [parser.OFPInstructionActions(ofproto.OFPIT_CLEAR_ACTIONS,
-                                             actions)]
-        
-        mod = parser.OFPFlowMod(datapath=datapath, table_id=0, priority=2, match=match, instructions=inst)
-        datapath.send_msg(mod)
+        # <Host 351_1: 351_1-eth0:192.168.1.8 pid=22293> 
+        # <Host 351_2: 351_2-eth0:192.168.1.7 pid=22295> 
+        # <Host 451_1: 451_1-eth0:192.168.1.5 pid=22302> 
+        # <Host 451_2: 451_2-eth0:192.168.1.6 pid=22307> 
+        # <Host 487B: 487B-eth0:192.168.1.9 pid=22309> 
+        # <Host 487E: 487E-eth0:192.168.1.10 pid=22311> 
+        # <Host 651R_1: 651R_1-eth0:192.168.1.12 pid=22313> 
+        # <Host 651R_2: 651R_2-eth0:192.168.1.13 pid=22326> 
+        # <Host 787_2: 787_2-eth0:192.168.1.11 pid=22328> 
+        # <Host RTAC: RTAC-eth0:192.168.1.14 pid=24527>
+        # <Host tmu1: tmu1-eth0:192.168.1.2 pid=22330> 
+        # <Host tmu2: tmu2-eth0:192.168.1.3 pid=22332> 
+        # <Host tmu3: tmu3-eth0:192.168.1.4 pid=22334> 
+        # <Host tmu4: tmu4-eth0:192.168.1.5 pid=22343> 
+        # <Host tmu5: tmu5-eth0:192.168.1.6 pid=22345>
 
-        # 351_2 cannot talk to 351_1
-        match = parser.OFPMatch(
-            eth_src=("00:00:00:00:00:07"),
-            eth_dst=("00:00:00:00:00:08")
-        )
-        # Empty actions should apply to drop the packet
-        actions = []
-        inst = [parser.OFPInstructionActions(ofproto.OFPIT_CLEAR_ACTIONS,
-                                             actions)]
+        # TODO: Can we parse those from a CSV or JSON file?
+        block_comms_IP = [
+            ("192.168.1.8", "192.168.1.7", "00:00:00:00:00:08", "00:00:00:00:00:07"),
+            ("192.168.1.8", "192.168.1.5", "00:00:00:00:00:08", "00:00:00:00:00:05"),
+            ("192.168.1.8", "192.168.1.6", "00:00:00:00:00:08", "00:00:00:00:00:06"),
+            ("192.168.1.8", "192.168.1.9", "00:00:00:00:00:08", "00:00:00:00:00:09"),
+            ("192.168.1.8", "192.168.1.10", "00:00:00:00:00:08", "00:00:00:00:00:10"),
+            ("192.168.1.8", "192.168.1.11", "00:00:00:00:00:08", "00:00:00:00:00:11"),
+            ("192.168.1.8", "192.168.1.12", "00:00:00:00:00:08", "00:00:00:00:00:12"),
+            ("192.168.1.8", "192.168.1.13", "00:00:00:00:00:08", "00:00:00:00:00:13"),
+            ("192.168.1.8", "192.168.1.2", "00:00:00:00:00:08", "00:00:00:00:00:02"),
+            ("192.168.1.8", "192.168.1.4", "00:00:00:00:00:08", "00:00:00:00:00:04"),
+            ("192.168.1.8", "192.168.1.5", "00:00:00:00:00:08", "00:00:00:00:00:05"),
+            ("192.168.1.8", "192.168.1.6", "00:00:00:00:00:08", "00:00:00:00:00:06"),
+        ]
+
+        # for i in range(len(block_comms_IP)):
+        #     print(f"{block_comms_IP[i][0]} with {block_comms_IP[i][1]}")
+        #     print(f"and {block_comms_IP[i][1]} with {block_comms_IP[i][0]}")
+
+        for i in range(len(block_comms_IP)):
+            match = parser.OFPMatch(
+                eth_type = 0x0800,
+                ipv4_src=(block_comms_IP[i][0]),
+                # ipv4_src=("192.168.1.8"),
+                ipv4_dst=(block_comms_IP[i][1]),
+                # ipv4_dst=("192.168.1.7"),
+                eth_src=(block_comms_IP[i][2]),
+                eth_dst=(block_comms_IP[i][3])
+                # eth_src=("00:00:00:00:00:08"),
+                # eth_dst=("00:00:00:00:00:07")
+            )
+            # Empty actions should apply to drop the packet
+            actions = []
+            inst = [parser.OFPInstructionActions(ofproto.OFPIT_CLEAR_ACTIONS,
+                                                actions)]
+            
+            mod = parser.OFPFlowMod(datapath=datapath, table_id=0, priority=2, match=match, instructions=inst)
+            datapath.send_msg(mod)
+
+            # Block the other side as well
+            match = parser.OFPMatch(
+                eth_type = 0x0800,
+                ipv4_src=(block_comms_IP[i][1]),
+                ipv4_dst=(block_comms_IP[i][0]),
+                eth_src=(block_comms_IP[i][3]),
+                eth_dst=(block_comms_IP[i][2])
+            )
+            # Empty actions should apply to drop the packet
+            actions = []
+            inst = [parser.OFPInstructionActions(ofproto.OFPIT_CLEAR_ACTIONS,
+                                                actions)]
+            
+            mod = parser.OFPFlowMod(datapath=datapath, table_id=0, priority=2, match=match, instructions=inst)
+            datapath.send_msg(mod)
+
         
-        mod = parser.OFPFlowMod(datapath=datapath, table_id=0, priority=2, match=match, instructions=inst)
-        datapath.send_msg(mod)
 
     def add_flow(self, datapath, priority, match, actions, buffer_id=None):
         ofproto = datapath.ofproto
