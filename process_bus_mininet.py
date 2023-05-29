@@ -57,24 +57,24 @@ class process_bus( Topo ):
             j = i + 2
 
             if j > 9:
-                j_str = f"{i + 5}"
+                j_str = f"{j}"
             else:
-                j_str = f"0{i + 5}"
+                j_str = f"0{j}"
             
             self.TMUs[TMUs_keys[i]].append(f"192.168.1.{j}/24")
-            self.TMUs[TMUs_keys[i]].append(f"00:00:00:00:00:0{j_str}")
+            self.TMUs[TMUs_keys[i]].append(f"00:00:00:00:00:{j_str}")
 
             TMU = self.addHost( TMUs_keys[i], ip=self.TMUs[TMUs_keys[i]][0], mac=self.TMUs[TMUs_keys[i]][1] )
             self.addLink( TMU, switch1 )
         
         for i in range(len(self.IEDs)):
             # +5 casue we did already setup 5 TMUs in this subnet
-            j = i + 5
+            j = i + 7
             
             if j > 9:
-                j_str = f"{i + 5}"
+                j_str = f"{j}"
             else:
-                j_str = f"0{i + 5}"
+                j_str = f"0{j}"
 
             self.IEDs[IEDs_keys[i]].append(f"192.168.1.{j}/24")
             self.IEDs[IEDs_keys[i]].append(f"00:00:00:00:00:{j_str}")
