@@ -20,6 +20,7 @@ import json
 processBus_app_instance_name = 'processBus_app'
 urlAll = '/processBus/getStats/{inPort}'
 urlMeter = '/processBus/meter'
+urlMeterStatsAll = '/processBus/getMeterStats'
 
 class process_bus(app_manager.RyuApp):
     OFP_VERSIONS = [ofproto_v1_3.OFP_VERSION]
@@ -44,6 +45,7 @@ class process_bus(app_manager.RyuApp):
         self.datapath = ev.msg.datapath
 
         self.flows_stats = []
+        self.meter_stats = []
 
         # install table-miss flow entry
         #
@@ -291,7 +293,7 @@ class process_bus(app_manager.RyuApp):
         dpid = datapath.id
         self.mac_to_port.setdefault(dpid, {})
 
-        self.logger.info("packet in %s SRC: %s DST: %s IN_PORT: %s", dpid, src, dst, in_port)
+        self.logger.info("packet in switch %s SRC: %s DST: %s IN_PORT: %s", dpid, src, dst, in_port)
 
         # learn a mac address to avoid FLOOD next time.
         self.mac_to_port[dpid][src] = in_port
@@ -342,6 +344,22 @@ class process_bus(app_manager.RyuApp):
 
         self.flows_stats = flows
 
+    @set_ev_cls(ofp_event.EventOFPMeterStatsReply, MAIN_DISPATCHER)
+    def meter_stats_reply_handler(self, ev):
+        meters = []
+        for stat in ev.msg.body:
+            meters.append('meter_id=0x%08x len=%d flow_count=%d '
+                        'packet_in_count=%d byte_in_count=%d '
+                        'duration_sec=%d duration_nsec=%d '
+                        'band_stats=%s' %
+                        (stat.meter_id, stat.len, stat.flow_count,
+                        stat.packet_in_count, stat.byte_in_count,
+                        stat.duration_sec, stat.duration_nsec,
+                        stat.band_stats))
+        self.logger.debug('MeterStats: %s', meters)
+
+        self.meter_stats = meters
+
 class ProcessBussController(ControllerBase):
 
     def __init__(self, req, link, data, **config):
@@ -378,7 +396,7 @@ class ProcessBussController(ControllerBase):
         datapath.send_msg(req)
         
         try:
-            OFP_REPLY_TIMER = 5.0  # sec
+            OFP_REPLY_TIMER = 1.0  # sec
             event.wait(timeout=OFP_REPLY_TIMER)
         except hub.Timeout:
             del waiters_per_datapath[req.xid]
@@ -405,12 +423,74 @@ class ProcessBussController(ControllerBase):
         ofp_parser = datapath.ofproto_parser
         ofp = datapath.ofproto
 
+        # Setting the meter here
         bands = []
-        dropband = ofp_parser.OFPMeterBandDrop(rate=10, burst_size=1)
+        dropband = ofp_parser.OFPMeterBandDrop(rate=2, burst_size=1)
         bands.append(dropband)
-        request = ofp_parser.OFPMeterMod(datapath=datapath,
+        meter_request = ofp_parser.OFPMeterMod(datapath=datapath,
                                         command=ofp.OFPMC_ADD,
                                         flags=ofp.OFPMF_PKTPS,
-                                        meter_id=666,
+                                        meter_id=1,
                                         bands=bands)
-        datapath.send_msg(request)
+        datapath.send_msg(meter_request)
+
+        #now meter_id=1 will be applied to the flow of in_port 1
+
+        match = ofp_parser.OFPMatch(in_port=1, eth_dst="00:00:00:00:00:12", eth_src="00:00:00:00:00:02")
+
+        actions = [ofp_parser.OFPActionOutput(11)]
+
+        inst = [ofp_parser.OFPInstructionActions(ofp.OFPIT_APPLY_ACTIONS, actions),ofp_parser.OFPInstructionMeter(1)]
+
+        cookie_mask = 0
+        ICMP_port1_mod = ofp_parser.OFPFlowMod(datapath=datapath, 
+                                                match=match, 
+                                                cookie=0,
+                                                command=ofp.OFPFC_MODIFY, 
+                                                idle_timeout=0,
+                                                hard_timeout=0, 
+                                                priority=1,
+                                                instructions=inst,
+                                                table_id=0,
+                                                buffer_id = ofp.OFP_NO_BUFFER, 
+                                                cookie_mask=cookie_mask,
+                                                out_port=ofp.OFPP_ANY, 
+                                                out_group=ofp.OFPG_ANY,
+                                                flags=ofp.OFPFF_SEND_FLOW_REM)
+        datapath.send_msg(ICMP_port1_mod)
+
+
+        return Response(content_type='text/plain', body='OK\n')
+    
+    def send_meter_stats_request(self, datapath, waiters):
+        ofp = datapath.ofproto
+        ofp_parser = datapath.ofproto_parser
+
+        req = ofp_parser.OFPMeterStatsRequest(datapath, 0, ofp.OFPM_ALL)
+
+        waiters_per_datapath = waiters.setdefault(datapath.id, {})
+        event = hub.Event()
+        msgs = []
+        waiters_per_datapath[req.xid] = (event, msgs)
+
+        datapath.send_msg(req)
+        
+        try:
+            OFP_REPLY_TIMER = 1.0  # sec
+            event.wait(timeout=OFP_REPLY_TIMER)
+        except hub.Timeout:
+            del waiters_per_datapath[req.xid]
+
+    @route('processBus', urlMeterStatsAll, methods=['GET'])
+    def get_flow_stats(self, req, **kwargs):
+        datapath = self.process_bus_app.datapath
+        waiters = {}
+        
+        self.send_meter_stats_request(datapath, waiters)
+
+        process_bus_app = self.process_bus_app
+        meter_stats = process_bus_app.meter_stats
+        body = json.dumps(meter_stats)
+
+        return Response(content_type='text/json', body=body)
+        # return Response(content_type='text/plain', body="OK\n")
