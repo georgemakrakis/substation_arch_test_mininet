@@ -6,6 +6,7 @@ from ryu.controller.handler import set_ev_cls
 
 from ryu.ofproto import ofproto_v1_3  # Specify the Openflow version to be used.
 
+from ryu.lib import hub
 
 from ryu.lib.packet import packet
 from ryu.lib.packet import ethernet
@@ -14,6 +15,7 @@ from ryu.lib.packet import in_proto
 
 from ryu.app.wsgi import ControllerBase, WSGIApplication, route
 from webob import Response
+import json
 
 processBus_app_instance_name = 'processBus_app'
 urlAll = '/processBus/getStats/{inPort}'
@@ -28,6 +30,7 @@ class process_bus(app_manager.RyuApp):
 
         wsgi = kwargs['wsgi']
         self.datapath = None
+        self.flows_stats = []
         wsgi.register(ProcessBussController,
                       {processBus_app_instance_name: self})
 
@@ -38,6 +41,8 @@ class process_bus(app_manager.RyuApp):
         parser = datapath.ofproto_parser
 
         self.datapath = ev.msg.datapath
+
+        self.flows_stats = []
 
         # install table-miss flow entry
         #
@@ -334,13 +339,15 @@ class process_bus(app_manager.RyuApp):
                         stat.match, stat.instructions))
         self.logger.debug('FlowStats: %s', flows)
 
+        self.flows_stats = flows
+
 class ProcessBussController(ControllerBase):
 
     def __init__(self, req, link, data, **config):
         super(ProcessBussController, self).__init__(req, link, data, **config)
         self.process_bus_app = data[processBus_app_instance_name]
 
-    def send_flow_stats_request(self, datapath, in_port):
+    def send_flow_stats_request(self, datapath, in_port, waiters):
         ofp = datapath.ofproto
         ofp_parser = datapath.ofproto_parser
 
@@ -361,13 +368,32 @@ class ProcessBussController(ControllerBase):
                                             ofp.OFPP_ANY, ofp.OFPG_ANY,
                                             cookie, cookie_mask,
                                             match)
+        
+        waiters_per_datapath = waiters.setdefault(datapath.id, {})
+        event = hub.Event()
+        msgs = []
+        waiters_per_datapath[req.xid] = (event, msgs)
+
         datapath.send_msg(req)
+        
+        try:
+            OFP_REPLY_TIMER = 5.0  # sec
+            event.wait(timeout=OFP_REPLY_TIMER)
+        except hub.Timeout:
+            del waiters_per_datapath[req.xid]
 
     @route('processBus', urlAll, methods=['GET'])
     def get_flow_stats(self, req, **kwargs):
         datapath = self.process_bus_app.datapath
         in_port = kwargs['inPort']
-        
-        self.send_flow_stats_request(datapath, in_port)
 
-        return Response(content_type='text/plain', body="OK\n")
+        waiters = {}
+        
+        self.send_flow_stats_request(datapath, in_port, waiters)
+
+        process_bus_app = self.process_bus_app
+        flows_stats = process_bus_app.flows_stats
+        body = json.dumps(flows_stats)
+
+        return Response(content_type='text/json', body=body)
+        # return Response(content_type='text/plain', body="OK\n")
