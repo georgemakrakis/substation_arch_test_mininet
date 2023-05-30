@@ -19,6 +19,7 @@ import json
 
 processBus_app_instance_name = 'processBus_app'
 urlAll = '/processBus/getStats/{inPort}'
+urlMeter = '/processBus/meter'
 
 class process_bus(app_manager.RyuApp):
     OFP_VERSIONS = [ofproto_v1_3.OFP_VERSION]
@@ -397,3 +398,19 @@ class ProcessBussController(ControllerBase):
 
         return Response(content_type='text/json', body=body)
         # return Response(content_type='text/plain', body="OK\n")
+
+    @route('processBus', urlMeter, methods=['POST'])
+    def set_meter(self, req, **kwards):
+        datapath = self.process_bus_app.datapath
+        ofp_parser = datapath.ofproto_parser
+        ofp = datapath.ofproto
+
+        bands = []
+        dropband = ofp_parser.OFPMeterBandDrop(rate=10, burst_size=1)
+        bands.append(dropband)
+        request = ofp_parser.OFPMeterMod(datapath=datapath,
+                                        command=ofp.OFPMC_ADD,
+                                        flags=ofp.OFPMF_PKTPS,
+                                        meter_id=666,
+                                        bands=bands)
+        datapath.send_msg(request)
