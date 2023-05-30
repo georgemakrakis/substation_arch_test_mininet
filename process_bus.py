@@ -16,7 +16,7 @@ from ryu.app.wsgi import ControllerBase, WSGIApplication, route
 from webob import Response
 
 processBus_app_instance_name = 'processBus_app'
-url = '/processBus'
+url = '/processBus/getStats'
 
 class process_bus(app_manager.RyuApp):
     OFP_VERSIONS = [ofproto_v1_3.OFP_VERSION]
@@ -340,7 +340,7 @@ class ProcessBussController(ControllerBase):
         super(ProcessBussController, self).__init__(req, link, data, **config)
         self.process_bus_app = data[processBus_app_instance_name]
 
-    @route('getStats', url, methods=['GET'])
+    @route('processBus', url, methods=['GET'])
     def send_flow_stats_request(self, req, **kwargs):
         datapath = self.process_bus_app.datapath
         ofp = datapath.ofproto
