@@ -15,7 +15,7 @@ from ryu.lib.packet import in_proto
 
 from ryu.app.wsgi import ControllerBase, WSGIApplication, route
 from webob import Response
-import json
+import json, re
 
 processBus_app_instance_name = 'processBus_app'
 urlAll = '/processBus/getStats/{inPort}'
@@ -421,13 +421,13 @@ class ProcessBussController(ControllerBase):
         except hub.Timeout:
             del waiters_per_datapath[req.xid]
 
-    def modify_drop_packets(self, datapath, waiters):
+    def modify_drop_packets(self, datapath, waiters, ether_dst, ether_src):
         datapath = self.process_bus_app.datapath
         ofp_parser = datapath.ofproto_parser
         ofp = datapath.ofproto
         
         # NOTE: All the below are for a very specific flow, need to generalize
-        match = ofp_parser.OFPMatch(in_port=1, eth_dst="00:00:00:00:00:12", eth_src="00:00:00:00:00:02")
+        match = ofp_parser.OFPMatch(eth_dst=ether_dst, eth_src=ether_src)
 
         actions = []
 
@@ -531,8 +531,27 @@ class ProcessBussController(ControllerBase):
 
         datapath = self.process_bus_app.datapath
         waiters = {}
+
+        eth_dst = ""
+        eth_src = ""
+
+        if (req.json):
+            for key, value in req.json.items():
+                if (key != "eth_dst" and key != "eth_src"):
+                    return Response(content_type='text/plain',status=400, body='Format should be: "eth_dst": "00:00:00:00:00:00", "eth_src": "00:00:00:00:00:00"\n')
+                if not re.match("[0-9a-f]{2}([:])[0-9a-f]{2}(\\1[0-9a-f]{2}){4}$", value.lower()):
+                    return Response(content_type='text/plain',status=400, body='MAC Address should be in form: "00:00:00:00:00:00"\n')
+
+                if (key == "eth_src"):
+                    eth_src = value
+                if (key == "eth_dst"):
+                    eth_dst = value
+
+        else:
+            # TODO: Shall we also include an informational message?
+            return Response(content_type='text/plain',status=400)
         
-        self.modify_drop_packets(datapath, waiters)
+        self.modify_drop_packets(datapath, waiters, eth_dst, eth_src)
 
         process_bus_app = self.process_bus_app
         # meter_stats = process_bus_app.meter_stats
