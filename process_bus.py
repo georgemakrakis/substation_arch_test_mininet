@@ -15,7 +15,7 @@ from ryu.lib.packet import in_proto
 
 from ryu.app.wsgi import ControllerBase, WSGIApplication, route
 from webob import Response
-import json, re
+import json, re, time
 
 processBus_app_instance_name = 'processBus_app'
 urlAll = '/processBus/getStats/{inPort}'
@@ -234,6 +234,8 @@ class process_bus(app_manager.RyuApp):
             mod = parser.OFPFlowMod(datapath=datapath, table_id=0, priority=i, match=match, instructions=inst)
             datapath.send_msg(mod)
 
+            self.flow_log("default_flows", mod.to_jsondict())
+
             # NOTE: This is not needed since each device will decide where it talks based on the above
             # Also we might want to prevent comms to one direction only (e.g. 451_1 --> 351_1 but NOT 451_1 <-- 351_1)
             # Block the other side as well
@@ -268,6 +270,9 @@ class process_bus(app_manager.RyuApp):
             mod = parser.OFPFlowMod(datapath=datapath, priority=priority,
                                     match=match, instructions=inst)
         datapath.send_msg(mod)
+
+        self.flow_log("add_flow", mod.to_jsondict())
+
 
     @set_ev_cls(ofp_event.EventOFPPacketIn, MAIN_DISPATCHER)
     def _packet_in_handler(self, ev):
@@ -361,11 +366,54 @@ class process_bus(app_manager.RyuApp):
 
         self.meter_stats = meters
 
-class ProcessBussController(ControllerBase):
+    def flow_log(self, origin, flow_json):
+        # Using 4 spaces as the "standard"
+        json_object = json.dumps(flow_json, indent=4)
+        # Writing to sample.json
+        with open(f"json_mod_{origin}_{time.strftime('%Y%m%d-%H%M%S')}.json", "w") as json_file:
+            json_file.write(json_object)
 
-    def __init__(self, req, link, data, **config):
-        super(ProcessBussController, self).__init__(req, link, data, **config)
-        self.process_bus_app = data[processBus_app_instance_name]
+    def set_metering(self, datapath):
+        ofp_parser = datapath.ofproto_parser
+        ofp = datapath.ofproto
+
+        # Setting the meter here
+        bands = []
+        dropband = ofp_parser.OFPMeterBandDrop(rate=2, burst_size=1)
+        bands.append(dropband)
+        meter_request = ofp_parser.OFPMeterMod(datapath=datapath,
+                                        command=ofp.OFPMC_ADD,
+                                        flags=ofp.OFPMF_PKTPS,
+                                        meter_id=1,
+                                        bands=bands)
+        datapath.send_msg(meter_request)
+
+        #now meter_id=1 will be applied to the flow of in_port 1
+
+        match = ofp_parser.OFPMatch(in_port=1, eth_dst="00:00:00:00:00:12", eth_src="00:00:00:00:00:02")
+
+        actions = [ofp_parser.OFPActionOutput(11)]
+
+        inst = [ofp_parser.OFPInstructionActions(ofp.OFPIT_APPLY_ACTIONS, actions),ofp_parser.OFPInstructionMeter(1)]
+
+        cookie_mask = 0
+        ICMP_port1_mod = ofp_parser.OFPFlowMod(datapath=datapath, 
+                                                match=match, 
+                                                cookie=0,
+                                                command=ofp.OFPFC_MODIFY, 
+                                                idle_timeout=0,
+                                                hard_timeout=0, 
+                                                priority=1,
+                                                instructions=inst,
+                                                table_id=0,
+                                                buffer_id = ofp.OFP_NO_BUFFER, 
+                                                cookie_mask=cookie_mask,
+                                                out_port=ofp.OFPP_ANY, 
+                                                out_group=ofp.OFPG_ANY,
+                                                flags=ofp.OFPFF_SEND_FLOW_REM)
+        datapath.send_msg(ICMP_port1_mod)
+
+        self.flow_log("set_meter", ICMP_port1_mod.to_jsondict())
 
     def send_flow_stats_request(self, datapath, in_port, waiters):
         ofp = datapath.ofproto
@@ -422,7 +470,6 @@ class ProcessBussController(ControllerBase):
             del waiters_per_datapath[req.xid]
 
     def modify_drop_packets(self, datapath, waiters, ether_dst, ether_src):
-        datapath = self.process_bus_app.datapath
         ofp_parser = datapath.ofproto_parser
         ofp = datapath.ofproto
         
@@ -441,8 +488,10 @@ class ProcessBussController(ControllerBase):
                                                 command=ofp.OFPFC_MODIFY, 
                                                 idle_timeout=0,
                                                 hard_timeout=0, 
+                                                # TODO: How can we know the priority?
                                                 priority=1,
                                                 instructions=inst,
+                                                # TODO: How can we know the table_id?
                                                 table_id=0,
                                                 buffer_id = ofp.OFP_NO_BUFFER, 
                                                 cookie_mask=cookie_mask,
@@ -451,6 +500,14 @@ class ProcessBussController(ControllerBase):
                                                 flags=ofp.OFPFF_SEND_FLOW_REM)
         datapath.send_msg(drop_mod)
 
+        self.flow_log("drop_packets", drop_mod.to_jsondict())
+
+class ProcessBussController(ControllerBase):
+
+    def __init__(self, req, link, data, **config):
+        super(ProcessBussController, self).__init__(req, link, data, **config)
+        self.process_bus_app = data[processBus_app_instance_name]
+
     @route('processBus', urlAll, methods=['GET'])
     def get_flow_stats(self, req, **kwargs):
         datapath = self.process_bus_app.datapath
@@ -458,7 +515,7 @@ class ProcessBussController(ControllerBase):
 
         waiters = {}
         
-        self.send_flow_stats_request(datapath, in_port, waiters)
+        self.process_bus_app.send_flow_stats_request(datapath, in_port, waiters)
 
         process_bus_app = self.process_bus_app
         flows_stats = process_bus_app.flows_stats
@@ -467,57 +524,21 @@ class ProcessBussController(ControllerBase):
         return Response(content_type='text/json', body=body)
         # return Response(content_type='text/plain', body="OK\n")
 
+    # TODO: This is POST bue we do not realy pass any data, should be done.
     @route('processBus', urlMeter, methods=['POST'])
     def set_meter(self, req, **kwards):
         datapath = self.process_bus_app.datapath
-        ofp_parser = datapath.ofproto_parser
-        ofp = datapath.ofproto
 
-        # Setting the meter here
-        bands = []
-        dropband = ofp_parser.OFPMeterBandDrop(rate=2, burst_size=1)
-        bands.append(dropband)
-        meter_request = ofp_parser.OFPMeterMod(datapath=datapath,
-                                        command=ofp.OFPMC_ADD,
-                                        flags=ofp.OFPMF_PKTPS,
-                                        meter_id=1,
-                                        bands=bands)
-        datapath.send_msg(meter_request)
-
-        #now meter_id=1 will be applied to the flow of in_port 1
-
-        match = ofp_parser.OFPMatch(in_port=1, eth_dst="00:00:00:00:00:12", eth_src="00:00:00:00:00:02")
-
-        actions = [ofp_parser.OFPActionOutput(11)]
-
-        inst = [ofp_parser.OFPInstructionActions(ofp.OFPIT_APPLY_ACTIONS, actions),ofp_parser.OFPInstructionMeter(1)]
-
-        cookie_mask = 0
-        ICMP_port1_mod = ofp_parser.OFPFlowMod(datapath=datapath, 
-                                                match=match, 
-                                                cookie=0,
-                                                command=ofp.OFPFC_MODIFY, 
-                                                idle_timeout=0,
-                                                hard_timeout=0, 
-                                                priority=1,
-                                                instructions=inst,
-                                                table_id=0,
-                                                buffer_id = ofp.OFP_NO_BUFFER, 
-                                                cookie_mask=cookie_mask,
-                                                out_port=ofp.OFPP_ANY, 
-                                                out_group=ofp.OFPG_ANY,
-                                                flags=ofp.OFPFF_SEND_FLOW_REM)
-        datapath.send_msg(ICMP_port1_mod)
-
+        self.process_bus_app.set_metering(datapath)
 
         return Response(content_type='text/plain', body='OK\n')
 
     @route('processBus', urlMeterStatsAll, methods=['GET'])
-    def get_flow_stats(self, req, **kwargs):
+    def get_meter_stats(self, req, **kwargs):
         datapath = self.process_bus_app.datapath
         waiters = {}
         
-        self.send_meter_stats_request(datapath, waiters)
+        self.process_bus_app.send_meter_stats_request(datapath, waiters)
 
         process_bus_app = self.process_bus_app
         meter_stats = process_bus_app.meter_stats
@@ -527,7 +548,7 @@ class ProcessBussController(ControllerBase):
         # return Response(content_type='text/plain', body="OK\n")
 
     @route('processBus', urlModifyRule, methods=['POST'])
-    def get_flow_stats(self, req, **kwargs):
+    def drop_packets(self, req, **kwargs):
 
         datapath = self.process_bus_app.datapath
         waiters = {}
@@ -539,6 +560,7 @@ class ProcessBussController(ControllerBase):
             for key, value in req.json.items():
                 if (key != "eth_dst" and key != "eth_src"):
                     return Response(content_type='text/plain',status=400, body='Format should be: "eth_dst": "00:00:00:00:00:00", "eth_src": "00:00:00:00:00:00"\n')
+                # Regex from https://stackoverflow.com/a/7629690/7189378
                 if not re.match("[0-9a-f]{2}([:])[0-9a-f]{2}(\\1[0-9a-f]{2}){4}$", value.lower()):
                     return Response(content_type='text/plain',status=400, body='MAC Address should be in form: "00:00:00:00:00:00"\n')
 
@@ -551,7 +573,7 @@ class ProcessBussController(ControllerBase):
             # TODO: Shall we also include an informational message?
             return Response(content_type='text/plain',status=400)
         
-        self.modify_drop_packets(datapath, waiters, eth_dst, eth_src)
+        self.process_bus_app.modify_drop_packets(datapath, waiters, eth_dst, eth_src)
 
         process_bus_app = self.process_bus_app
         # meter_stats = process_bus_app.meter_stats
