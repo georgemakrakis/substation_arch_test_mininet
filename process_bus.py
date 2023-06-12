@@ -23,6 +23,8 @@ urlMeter = '/processBus/meter'
 urlMeterStatsAll = '/processBus/getMeterStats'
 urlModifyRule = '/processBus/modifyRule'
 
+OFP_REPLY_TIMER = 1.0  # sec
+
 class process_bus(app_manager.RyuApp):
     OFP_VERSIONS = [ofproto_v1_3.OFP_VERSION]
     _CONTEXTS = {'wsgi': WSGIApplication}
@@ -58,7 +60,13 @@ class process_bus(app_manager.RyuApp):
         match = parser.OFPMatch()
         actions = [parser.OFPActionOutput(ofproto.OFPP_CONTROLLER,
                                           ofproto.OFPCML_NO_BUFFER)]
-        self.add_flow(datapath, 0, match, actions)
+        
+        inst = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS,
+                                             actions)]
+        
+        waiters = {}
+        command = ofproto.OFPFC_ADD
+        self.add_flow(datapath, 0, command, match, inst, waiters, "controller_handling", 0)
 
         # ICMP drop flow example
         # match = parser.OFPMatch(eth_type=ether_types.ETH_TYPE_IP, ip_proto=in_proto.IPPROTO_ICMP)
@@ -234,6 +242,10 @@ class process_bus(app_manager.RyuApp):
             mod = parser.OFPFlowMod(datapath=datapath, table_id=0, priority=i, match=match, instructions=inst)
             datapath.send_msg(mod)
 
+            # NOTE: Not sure about moving this one to the add_flow() yet.
+            # waiters = {}
+            # self.add_flow(datapath, 0, match, inst, waiters, "controller_handling")
+
             self.flow_log("default_flows", mod.to_jsondict())
 
             # NOTE: This is not needed since each device will decide where it talks based on the above
@@ -256,22 +268,40 @@ class process_bus(app_manager.RyuApp):
 
         
 
-    def add_flow(self, datapath, priority, match, actions, buffer_id=None):
+    def add_flow(self, datapath, priority, command, match, inst, waiters, log_action, timeout=OFP_REPLY_TIMER, buffer_id=None):
         ofproto = datapath.ofproto
         parser = datapath.ofproto_parser
 
-        inst = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS,
-                                             actions)]
+        # inst = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS,
+        #                                      actions)]
+
         if buffer_id:
-            mod = parser.OFPFlowMod(datapath=datapath, buffer_id=buffer_id,
+            mod = parser.OFPFlowMod(datapath=datapath, command=command, buffer_id=buffer_id,
                                     priority=priority, match=match,
                                     instructions=inst)
         else:
-            mod = parser.OFPFlowMod(datapath=datapath, priority=priority,
+            mod = parser.OFPFlowMod(datapath=datapath, command=command, priority=priority,
                                     match=match, instructions=inst)
-        datapath.send_msg(mod)
+        # datapath.send_msg(mod)
 
-        self.flow_log("add_flow", mod.to_jsondict())
+        # self.flow_log("add_flow", mod.to_jsondict())
+
+        waiters_per_datapath = waiters.setdefault(datapath.id, {})
+        event = hub.Event()
+        msgs = []
+        waiters_per_datapath[mod.xid] = (event, msgs)
+
+        datapath.send_msg(mod)
+        
+        try:
+            event.wait(timeout=timeout)
+            self.flow_log(f"{log_action}", mod.to_jsondict())
+        except hub.Timeout:
+            del waiters_per_datapath[mod.xid]
+            self.flow_log(f"{log_action}", mod.to_jsondict())
+        except Exception as ex:
+            print(f"set_meter exception: {ex}")
+        
 
 
     @set_ev_cls(ofp_event.EventOFPPacketIn, MAIN_DISPATCHER)
@@ -310,6 +340,10 @@ class process_bus(app_manager.RyuApp):
             out_port = ofproto.OFPP_FLOOD
 
         actions = [parser.OFPActionOutput(out_port)]
+        inst = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS,
+                                             actions)]
+        command=ofproto.OFPFC_ADD
+        waiters = {}
 
         # install a flow to avoid packet_in next time
         if out_port != ofproto.OFPP_FLOOD:
@@ -317,10 +351,10 @@ class process_bus(app_manager.RyuApp):
             # verify if we have a valid buffer_id, if yes avoid to send both
             # flow_mod & packet_out
             if msg.buffer_id != ofproto.OFP_NO_BUFFER:
-                self.add_flow(datapath, 1, match, actions, msg.buffer_id)
+                self.add_flow(datapath, 1, command, match, inst, waiters, "packet_in", 0, msg.buffer_id)
                 return
             else:
-                self.add_flow(datapath, 1, match, actions)
+                self.add_flow(datapath, 1, command, match, inst, waiters, "packet_in", 0)
         data = None
         if msg.buffer_id == ofproto.OFP_NO_BUFFER:
             data = msg.data
@@ -373,7 +407,7 @@ class process_bus(app_manager.RyuApp):
         with open(f"json_mod_{origin}_{time.strftime('%Y%m%d-%H%M%S')}.json", "w") as json_file:
             json_file.write(json_object)
 
-    def set_metering(self, datapath):
+    def set_metering(self, datapath, waiters):
         ofp_parser = datapath.ofproto_parser
         ofp = datapath.ofproto
 
@@ -395,25 +429,28 @@ class process_bus(app_manager.RyuApp):
         actions = [ofp_parser.OFPActionOutput(11)]
 
         inst = [ofp_parser.OFPInstructionActions(ofp.OFPIT_APPLY_ACTIONS, actions),ofp_parser.OFPInstructionMeter(1)]
+        
+        command=ofp.OFPFC_MODIFY
+        self.add_flow(datapath, 1, command, match, inst, waiters, "set_meter")
 
-        cookie_mask = 0
-        ICMP_port1_mod = ofp_parser.OFPFlowMod(datapath=datapath, 
-                                                match=match, 
-                                                cookie=0,
-                                                command=ofp.OFPFC_MODIFY, 
-                                                idle_timeout=0,
-                                                hard_timeout=0, 
-                                                priority=1,
-                                                instructions=inst,
-                                                table_id=0,
-                                                buffer_id = ofp.OFP_NO_BUFFER, 
-                                                cookie_mask=cookie_mask,
-                                                out_port=ofp.OFPP_ANY, 
-                                                out_group=ofp.OFPG_ANY,
-                                                flags=ofp.OFPFF_SEND_FLOW_REM)
-        datapath.send_msg(ICMP_port1_mod)
+        # waiters_per_datapath = waiters.setdefault(datapath.id, {})
+        # event = hub.Event()
+        # msgs = []
+        # waiters_per_datapath[ICMP_port1_mod.xid] = (event, msgs)
 
-        self.flow_log("set_meter", ICMP_port1_mod.to_jsondict())
+        # datapath.send_msg(ICMP_port1_mod)
+        
+        # try:
+        #     event.wait(timeout=OFP_REPLY_TIMER)
+        #     self.flow_log("set_meter", ICMP_port1_mod.to_jsondict())
+        # except hub.Timeout:
+        #     del waiters_per_datapath[ICMP_port1_mod.xid]
+        #     self.flow_log("msg_timeout_set_meter", ICMP_port1_mod.to_jsondict())
+        # except Exception as ex:
+        #     print(f"set_meter exception: {ex}")
+
+
+        
 
     def send_flow_stats_request(self, datapath, in_port, waiters):
         ofp = datapath.ofproto
@@ -445,10 +482,12 @@ class process_bus(app_manager.RyuApp):
         datapath.send_msg(req)
         
         try:
-            OFP_REPLY_TIMER = 1.0  # sec
             event.wait(timeout=OFP_REPLY_TIMER)
         except hub.Timeout:
             del waiters_per_datapath[req.xid]
+            self.flow_log("msg_timeout_send_flow_stats_request", req.to_jsondict())
+        except Exception as ex:
+            print(f"send_flow_stats_request exception: {ex}")
 
     def send_meter_stats_request(self, datapath, waiters):
         ofp = datapath.ofproto
@@ -464,10 +503,14 @@ class process_bus(app_manager.RyuApp):
         datapath.send_msg(req)
         
         try:
-            OFP_REPLY_TIMER = 1.0  # sec
+            
             event.wait(timeout=OFP_REPLY_TIMER)
         except hub.Timeout:
             del waiters_per_datapath[req.xid]
+            self.flow_log("msg_timeout_send_meter_stats_request", req.to_jsondict())
+        except Exception as ex:
+            print(f"send_meter_stats_request exception: {ex}")
+
 
     def modify_drop_packets(self, datapath, waiters, ether_dst, ether_src):
         ofp_parser = datapath.ofproto_parser
@@ -498,9 +541,27 @@ class process_bus(app_manager.RyuApp):
                                                 out_port=ofp.OFPP_ANY, 
                                                 out_group=ofp.OFPG_ANY,
                                                 flags=ofp.OFPFF_SEND_FLOW_REM)
-        datapath.send_msg(drop_mod)
 
-        self.flow_log("drop_packets", drop_mod.to_jsondict())
+        # NOTE: The above "TODO" questions are still valid and need to be addressed.
+        command=ofp.OFPFC_MODIFY
+        self.add_flow(datapath, 1, command, match, inst, waiters, "drop_packets")
+ 
+        # waiters_per_datapath = waiters.setdefault(datapath.id, {})
+        # event = hub.Event()
+        # msgs = []
+        # waiters_per_datapath[drop_mod.xid] = (event, msgs)
+
+        # datapath.send_msg(drop_mod)
+        
+        # try:
+            
+        #     event.wait(timeout=OFP_REPLY_TIMER)
+        #     self.flow_log("drop_packets", drop_mod.to_jsondict())
+        # except hub.Timeout:
+        #     del waiters_per_datapath[drop_mod.xid]
+        #     self.flow_log("msg_timeout_drop_packets", drop_mod.to_jsondict())
+        # except Exception as ex:
+        #     print(f"modify_drop_packets exception: {ex}")
 
 class ProcessBussController(ControllerBase):
 
@@ -528,8 +589,9 @@ class ProcessBussController(ControllerBase):
     @route('processBus', urlMeter, methods=['POST'])
     def set_meter(self, req, **kwards):
         datapath = self.process_bus_app.datapath
+        waiters = {}
 
-        self.process_bus_app.set_metering(datapath)
+        self.process_bus_app.set_metering(datapath, waiters)
 
         return Response(content_type='text/plain', body='OK\n')
 
