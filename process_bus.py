@@ -15,7 +15,7 @@ from ryu.lib.packet import in_proto
 
 from ryu.app.wsgi import ControllerBase, WSGIApplication, route
 from webob import Response
-import json, re, time
+import json, re, time, os
 
 processBus_app_instance_name = 'processBus_app'
 urlAll = '/processBus/getStats/{inPort}'
@@ -239,6 +239,7 @@ class process_bus(app_manager.RyuApp):
             inst = [parser.OFPInstructionActions(ofproto.OFPIT_CLEAR_ACTIONS,
                                                 actions)]
             
+            # TODO: Need to check the datapath IDs here so we will not apply the same rules to all switches.
             mod = parser.OFPFlowMod(datapath=datapath, table_id=0, priority=i, match=match, instructions=inst)
             datapath.send_msg(mod)
 
@@ -403,8 +404,12 @@ class process_bus(app_manager.RyuApp):
     def flow_log(self, origin, flow_json):
         # Using 4 spaces as the "standard"
         json_object = json.dumps(flow_json, indent=4)
-        # Writing to sample.json
-        with open(f"json_mod_{origin}_{time.strftime('%Y%m%d-%H%M%S')}.json", "w") as json_file:
+        
+        path = origin
+        if not os.path.exists(path):
+            os.makedirs(path)
+
+        with open(f"{path}/json_mod_{origin}_{time.strftime('%Y%m%d-%H%M%S')}.json", "w") as json_file:
             json_file.write(json_object)
 
     def set_metering(self, datapath, waiters):
@@ -448,9 +453,7 @@ class process_bus(app_manager.RyuApp):
         #     self.flow_log("msg_timeout_set_meter", ICMP_port1_mod.to_jsondict())
         # except Exception as ex:
         #     print(f"set_meter exception: {ex}")
-
-
-        
+    
 
     def send_flow_stats_request(self, datapath, in_port, waiters):
         ofp = datapath.ofproto
