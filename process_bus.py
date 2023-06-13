@@ -1,3 +1,7 @@
+import json, re, time, os
+from io import BytesIO
+import zipfile
+
 from ryu.base import app_manager # This is the main entry point for the controller application.
 
 from ryu.controller import ofp_event # To capture openflow event, when the openflow packet received
@@ -15,13 +19,18 @@ from ryu.lib.packet import in_proto
 
 from ryu.app.wsgi import ControllerBase, WSGIApplication, route
 from webob import Response
-import json, re, time, os
 
 processBus_app_instance_name = 'processBus_app'
 urlAll = '/processBus/getStats/{inPort}'
 urlMeter = '/processBus/meter'
 urlMeterStatsAll = '/processBus/getMeterStats'
 urlModifyRule = '/processBus/modifyRule'
+
+urlGetDefaultFlows = '/processBus/defaultFlows'
+urlGetPacketInFlows = '/processBus/packetInFlows'
+# TODO: Maybe the below not needed, can we use the urlMeter with GET?
+urlGetMeterFlows = '/processBus/meterFlows'
+urlGetDropFlows = '/processBus/dropFlows'
 
 OFP_REPLY_TIMER = 1.0  # sec
 
@@ -572,6 +581,17 @@ class ProcessBussController(ControllerBase):
         super(ProcessBussController, self).__init__(req, link, data, **config)
         self.process_bus_app = data[processBus_app_instance_name]
 
+    def generate_zip(self, path):
+        mem_zip = BytesIO()
+
+        with zipfile.ZipFile(mem_zip, mode="w",compression=zipfile.ZIP_DEFLATED) as zf:
+            for root, dirs, files in os.walk(path):
+                for file in files:
+                    # zf.writestr(file)
+                    zf.write(f"./{path}/{file}")
+
+        return mem_zip.getvalue()
+
     @route('processBus', urlAll, methods=['GET'])
     def get_flow_stats(self, req, **kwargs):
         datapath = self.process_bus_app.datapath
@@ -645,3 +665,14 @@ class ProcessBussController(ControllerBase):
         # body = json.dumps(meter_stats)
 
         return Response(content_type='text/plain', body='OK\n')
+
+
+    @route('processBus', urlGetDefaultFlows, methods=['GET'])
+    def get_default_flows(self, req, **kwargs):
+
+        full_zip_in_memory = self.generate_zip("default_flows")
+        
+        response = Response(full_zip_in_memory, content_type='application/force-download')
+        # response['Content-Disposition'] = 'attachment; filename="{}"'.format('default_flows.zip')
+        return response
+        # return Response(content_type='text/plain', body="OK\n")
