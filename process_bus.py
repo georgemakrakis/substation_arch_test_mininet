@@ -278,7 +278,7 @@ class process_bus(app_manager.RyuApp):
 
         
 
-    def add_flow(self, datapath, priority, command, match, inst, waiters, log_action, timeout=OFP_REPLY_TIMER, buffer_id=None):
+    def add_flow(self, datapath, priority, command, match, inst, waiters, log_action, table_id=0, timeout=OFP_REPLY_TIMER, buffer_id=None):
         ofproto = datapath.ofproto
         parser = datapath.ofproto_parser
 
@@ -287,11 +287,11 @@ class process_bus(app_manager.RyuApp):
 
         if buffer_id:
             mod = parser.OFPFlowMod(datapath=datapath, command=command, buffer_id=buffer_id,
-                                    priority=priority, match=match,
+                                    priority=priority, match=match, table_id=table_id,
                                     instructions=inst)
         else:
             mod = parser.OFPFlowMod(datapath=datapath, command=command, priority=priority,
-                                    match=match, instructions=inst)
+                                    match=match, table_id=table_id, instructions=inst)
         # datapath.send_msg(mod)
 
         # self.flow_log("add_flow", mod.to_jsondict())
@@ -524,7 +524,7 @@ class process_bus(app_manager.RyuApp):
             print(f"send_meter_stats_request exception: {ex}")
 
 
-    def modify_drop_packets(self, datapath, waiters, ether_dst, ether_src):
+    def modify_drop_packets(self, datapath, waiters, ether_dst, ether_src, priority, table_id):
         ofp_parser = datapath.ofproto_parser
         ofp = datapath.ofproto
         
@@ -543,10 +543,14 @@ class process_bus(app_manager.RyuApp):
                                                 command=ofp.OFPFC_MODIFY, 
                                                 idle_timeout=0,
                                                 hard_timeout=0, 
-                                                # TODO: How can we know the priority?
+                                                # TODO: How can we know the priority? 
+                                                # We do not, this is shown as GUI and then the user changes only the action.
+                                                # But we pass it as parameter to the function.
                                                 priority=1,
                                                 instructions=inst,
                                                 # TODO: How can we know the table_id?
+                                                # We do not, this is shown as GUI and then the user changes only the action.
+                                                # But we pass it as parameter to the function.
                                                 table_id=0,
                                                 buffer_id = ofp.OFP_NO_BUFFER, 
                                                 cookie_mask=cookie_mask,
@@ -556,7 +560,7 @@ class process_bus(app_manager.RyuApp):
 
         # NOTE: The above "TODO" questions are still valid and need to be addressed.
         command=ofp.OFPFC_MODIFY
-        self.add_flow(datapath, 1, command, match, inst, waiters, "drop_packets")
+        self.add_flow(datapath, priority, command, match, inst, waiters, "drop_packets", table_id)
  
         # waiters_per_datapath = waiters.setdefault(datapath.id, {})
         # event = hub.Event()
@@ -640,25 +644,36 @@ class ProcessBussController(ControllerBase):
 
         eth_dst = ""
         eth_src = ""
+        priority = ""
+        table_id = ""
 
         if (req.json):
+
+            if "eth_dst" not in req.json or "eth_src" not in req.json or "priority" not in req.json or "table_id" not in req.json:
+                return Response(content_type='text/plain',status=400, body='Format should be: "eth_dst": "00:00:00:00:00:00", "eth_src": "00:00:00:00:00:00", "priority" : 0, "table_id" : 0\n')
+            
             for key, value in req.json.items():
-                if (key != "eth_dst" and key != "eth_src"):
-                    return Response(content_type='text/plain',status=400, body='Format should be: "eth_dst": "00:00:00:00:00:00", "eth_src": "00:00:00:00:00:00"\n')
-                # Regex from https://stackoverflow.com/a/7629690/7189378
-                if not re.match("[0-9a-f]{2}([:])[0-9a-f]{2}(\\1[0-9a-f]{2}){4}$", value.lower()):
-                    return Response(content_type='text/plain',status=400, body='MAC Address should be in form: "00:00:00:00:00:00"\n')
 
                 if (key == "eth_src"):
+                    # Regex from https://stackoverflow.com/a/7629690/7189378
+                    if not re.match("[0-9a-f]{2}([:])[0-9a-f]{2}(\\1[0-9a-f]{2}){4}$", value.lower()):
+                        return Response(content_type='text/plain',status=400, body='MAC Address should be in form: "00:00:00:00:00:00"\n')
+                    
                     eth_src = value
                 if (key == "eth_dst"):
+                    if not re.match("[0-9a-f]{2}([:])[0-9a-f]{2}(\\1[0-9a-f]{2}){4}$", value.lower()):
+                        return Response(content_type='text/plain',status=400, body='MAC Address should be in form: "00:00:00:00:00:00"\n')
                     eth_dst = value
+                if (key == "priority"):
+                    priority = value
+                if (key == "table_id"):
+                    table_id = value
 
         else:
             # TODO: Shall we also include an informational message?
             return Response(content_type='text/plain',status=400)
         
-        self.process_bus_app.modify_drop_packets(datapath, waiters, eth_dst, eth_src)
+        self.process_bus_app.modify_drop_packets(datapath, waiters, eth_dst, eth_src, priority, table_id)
 
         process_bus_app = self.process_bus_app
         # meter_stats = process_bus_app.meter_stats
