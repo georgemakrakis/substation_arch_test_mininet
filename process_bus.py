@@ -667,12 +667,36 @@ class ProcessBussController(ControllerBase):
         return Response(content_type='text/plain', body='OK\n')
 
 
+    # Below are the endpoints for retrieving the flows log.
+
     @route('processBus', urlGetDefaultFlows, methods=['GET'])
     def get_default_flows(self, req, **kwargs):
 
         full_zip_in_memory = self.generate_zip("default_flows")
         
         response = Response(full_zip_in_memory, content_type='application/force-download')
-        # response['Content-Disposition'] = 'attachment; filename="{}"'.format('default_flows.zip')
         return response
-        # return Response(content_type='text/plain', body="OK\n")
+    
+    @route('processBus', urlGetPacketInFlows, methods=['GET'])
+    def get_packetIn_flows(self, req, **kwargs):
+
+        full_zip_in_memory = self.generate_zip("packet_in")
+        
+        response = Response(full_zip_in_memory, content_type='application/force-download')
+        return response
+    
+    @route('processBus', urlGetMeterFlows, methods=['GET'])
+    def get_meter_flows(self, req, **kwargs):
+
+        full_zip_in_memory = self.generate_zip("set_meter")
+        
+        response = Response(full_zip_in_memory, content_type='application/force-download')
+        return response
+    
+    @route('processBus', urlGetDropFlows, methods=['GET'])
+    def get_packetIn_Flows(self, req, **kwargs):
+
+        full_zip_in_memory = self.generate_zip("drop_packets")
+        
+        response = Response(full_zip_in_memory, content_type='application/force-download')
+        return response
