@@ -1,6 +1,6 @@
 """Custom topology for a process bus
 
-Below we should visualize the topology, with somethink like the following:
+Below we should visualize the topology, with something like the following:
              host3
                |
                |
@@ -45,6 +45,10 @@ class process_bus( Topo ):
             # "387_2": [] # This one has only serial connection to the RTAC
         }
 
+        self.IDSs = {
+            "IDS_1" : []
+        }
+
 
         TMUs_keys = list(self.TMUs.keys())
         IEDs_keys = list(self.IEDs.keys())
@@ -81,6 +85,13 @@ class process_bus( Topo ):
 
             IED = self.addHost( IEDs_keys[i], ip=self.IEDs[IEDs_keys[i]][0], mac=self.IEDs[IEDs_keys[i]][1] )
             self.addLink( IED, switch1 )
+
+        # Assigning IDS as well
+        self.IDSs["IDS_1"].append(f"192.168.1.150/24")
+        self.IDSs["IDS_1"].append(f"00:00:00:00:11:11")
+
+        IDS = self.addHost( "IDS_1", ip=self.IDSs["IDS_1"][0], mac=self.IDSs["IDS_1"][1] )
+        self.addLink( IDS, switch1, port1=20, port2=20 )
 
 
 topos = { "process_bus": ( lambda: process_bus() ) }

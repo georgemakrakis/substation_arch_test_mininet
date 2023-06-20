@@ -68,7 +68,7 @@ class process_bus(app_manager.RyuApp):
         # correctly.  The bug has been fixed in OVS v2.1.0.
         match = parser.OFPMatch()
         actions = [parser.OFPActionOutput(ofproto.OFPP_CONTROLLER,
-                                          ofproto.OFPCML_NO_BUFFER)]
+                                          ofproto.OFPCML_NO_BUFFER), parser.OFPActionOutput(20)]
         
         inst = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS,
                                              actions)]
@@ -243,8 +243,11 @@ class process_bus(app_manager.RyuApp):
                 eth_src=(block_comms[i][2]),
                 eth_dst=(block_comms[i][3])
             )
-            # Empty actions should apply to drop the packet
+            # Empty actions will apply to drop the packet
             actions = []
+            # TODO: Shal we just forward it to the IDS (port 20) to create an alert anyways?
+            # actions = [ofp_parser.OFPActionOutput(20)]
+
             inst = [parser.OFPInstructionActions(ofproto.OFPIT_CLEAR_ACTIONS,
                                                 actions)]
             
@@ -349,7 +352,8 @@ class process_bus(app_manager.RyuApp):
         else:
             out_port = ofproto.OFPP_FLOOD
 
-        actions = [parser.OFPActionOutput(out_port)]
+        # NOTE: Port 20 is the IDS
+        actions = [parser.OFPActionOutput(out_port), parser.OFPActionOutput(20)]
         inst = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS,
                                              actions)]
         command=ofproto.OFPFC_ADD
@@ -361,10 +365,10 @@ class process_bus(app_manager.RyuApp):
             # verify if we have a valid buffer_id, if yes avoid to send both
             # flow_mod & packet_out
             if msg.buffer_id != ofproto.OFP_NO_BUFFER:
-                self.add_flow(datapath, 1, command, match, inst, waiters, "packet_in", 0, msg.buffer_id)
+                self.add_flow(datapath, 1, command, match, inst, waiters, "packet_in", 0, 0, msg.buffer_id)
                 return
             else:
-                self.add_flow(datapath, 1, command, match, inst, waiters, "packet_in", 0)
+                self.add_flow(datapath, 1, command, match, inst, waiters, "packet_in", 0, 0)
         data = None
         if msg.buffer_id == ofproto.OFP_NO_BUFFER:
             data = msg.data
@@ -421,7 +425,7 @@ class process_bus(app_manager.RyuApp):
         with open(f"{path}/json_mod_{origin}_{time.strftime('%Y%m%d-%H%M%S')}.json", "w") as json_file:
             json_file.write(json_object)
 
-    def set_metering(self, datapath, waiters):
+    def set_metering(self, datapath, waiters, ether_dst, ether_src, priority, table_id):
         ofp_parser = datapath.ofproto_parser
         ofp = datapath.ofproto
 
@@ -438,14 +442,18 @@ class process_bus(app_manager.RyuApp):
 
         #now meter_id=1 will be applied to the flow of in_port 1
 
-        match = ofp_parser.OFPMatch(in_port=1, eth_dst="00:00:00:00:00:12", eth_src="00:00:00:00:00:02")
+        match = ofp_parser.OFPMatch(in_port=1, eth_dst=ether_dst, eth_src=ether_src)
 
-        actions = [ofp_parser.OFPActionOutput(11)]
+        # TODO: So we will not have hardcoded ports next.
+        # if dst in self.mac_to_port[dpid]:
+        #     out_port = self.mac_to_port[dpid][dst]
+
+        actions = [ofp_parser.OFPActionOutput(11), ofp_parser.OFPActionOutput(20)]
 
         inst = [ofp_parser.OFPInstructionActions(ofp.OFPIT_APPLY_ACTIONS, actions),ofp_parser.OFPInstructionMeter(1)]
         
         command=ofp.OFPFC_MODIFY
-        self.add_flow(datapath, 1, command, match, inst, waiters, "set_meter")
+        self.add_flow(datapath, priority, command, match, inst, waiters, "set_meter", table_id, OFP_REPLY_TIMER)
 
         # waiters_per_datapath = waiters.setdefault(datapath.id, {})
         # event = hub.Event()
@@ -531,32 +539,12 @@ class process_bus(app_manager.RyuApp):
         # NOTE: All the below are for a very specific flow, need to generalize
         match = ofp_parser.OFPMatch(eth_dst=ether_dst, eth_src=ether_src)
 
+        # TODO: Shal we just forward it to the IDS (port 20) to create an alert anyways?
+        # actions = [ofp_parser.OFPActionOutput(20)]
         actions = []
 
         inst = [ofp_parser.OFPInstructionActions(ofp.OFPIT_APPLY_ACTIONS,
                                              actions)]
-
-        cookie_mask = 0
-        drop_mod = ofp_parser.OFPFlowMod(datapath=datapath, 
-                                                match=match, 
-                                                cookie=0,
-                                                command=ofp.OFPFC_MODIFY, 
-                                                idle_timeout=0,
-                                                hard_timeout=0, 
-                                                # TODO: How can we know the priority? 
-                                                # We do not, this is shown as GUI and then the user changes only the action.
-                                                # But we pass it as parameter to the function.
-                                                priority=1,
-                                                instructions=inst,
-                                                # TODO: How can we know the table_id?
-                                                # We do not, this is shown as GUI and then the user changes only the action.
-                                                # But we pass it as parameter to the function.
-                                                table_id=0,
-                                                buffer_id = ofp.OFP_NO_BUFFER, 
-                                                cookie_mask=cookie_mask,
-                                                out_port=ofp.OFPP_ANY, 
-                                                out_group=ofp.OFPG_ANY,
-                                                flags=ofp.OFPFF_SEND_FLOW_REM)
 
         # NOTE: The above "TODO" questions are still valid and need to be addressed.
         command=ofp.OFPFC_MODIFY
@@ -596,6 +584,43 @@ class ProcessBussController(ControllerBase):
 
         return mem_zip.getvalue()
 
+    def validate_POST(self, json_req):
+
+        tuple_ret = ()
+
+        if "eth_dst" not in json_req or "eth_src" not in json_req or "priority" not in json_req or "table_id" not in json_req:
+            # return Response(content_type='text/plain',status=400, body='Format should be: "eth_dst": "00:00:00:00:00:00", "eth_src": "00:00:00:00:00:00", "priority" : 0, "table_id" : 0\n')
+            return ()
+        
+        for key, value in json_req.items():
+
+            if (key == "eth_src"):
+                # Regex from https://stackoverflow.com/a/7629690/7189378
+                if not re.match("[0-9a-f]{2}([:])[0-9a-f]{2}(\\1[0-9a-f]{2}){4}$", value.lower()):
+                    # return Response(content_type='text/plain',status=400, body='MAC Address should be in form: "00:00:00:00:00:00"\n')
+                    return ()
+                # eth_src = value
+                tuple_ret = tuple_ret + (value,)
+                
+            if (key == "eth_dst"):
+                if not re.match("[0-9a-f]{2}([:])[0-9a-f]{2}(\\1[0-9a-f]{2}){4}$", value.lower()):
+                    # return Response(content_type='text/plain',status=400, body='MAC Address should be in form: "00:00:00:00:00:00"\n')
+                    return ()                    
+                # eth_dst = value
+                tuple_ret = tuple_ret + (value,)
+
+            if (key == "priority"):
+                # priority = value
+                tuple_ret = tuple_ret + (value,)
+
+            if (key == "table_id"):
+                # table_id = value
+                tuple_ret = tuple_ret + (value,)
+
+        # print(f"AAAAAA {tuple_ret}")
+        return tuple_ret
+
+
     @route('processBus', urlAll, methods=['GET'])
     def get_flow_stats(self, req, **kwargs):
         datapath = self.process_bus_app.datapath
@@ -618,7 +643,28 @@ class ProcessBussController(ControllerBase):
         datapath = self.process_bus_app.datapath
         waiters = {}
 
-        self.process_bus_app.set_metering(datapath, waiters)
+        eth_dst = ""
+        eth_src = ""
+        priority = ""
+        table_id = ""
+
+        if (req.json):
+            valid_tuple = self.validate_POST(req.json)
+            if (len(valid_tuple) != 4):
+                return Response(content_type='text/plain',status=400, body='Format should be: "eth_dst": "00:00:00:00:00:00", "eth_src": "00:00:00:00:00:00", "priority" : 0, "table_id" : 0\n')
+
+            eth_dst, eth_src, priority, table_id = valid_tuple
+            self.process_bus_app.set_metering(datapath, waiters, eth_dst, eth_src, priority, table_id)
+
+            process_bus_app = self.process_bus_app
+            # meter_stats = process_bus_app.meter_stats
+            # body = json.dumps(meter_stats)
+
+            return Response(content_type='text/plain', body='OK\n')
+
+        else:
+            # TODO: Shall we also include an informational message?
+            return Response(content_type='text/plain',status=400)
 
         return Response(content_type='text/plain', body='OK\n')
 
@@ -648,38 +694,23 @@ class ProcessBussController(ControllerBase):
         table_id = ""
 
         if (req.json):
-
-            if "eth_dst" not in req.json or "eth_src" not in req.json or "priority" not in req.json or "table_id" not in req.json:
+            valid_tuple = self.validate_POST(req.json)
+            if (len(valid_tuple) != 4):
                 return Response(content_type='text/plain',status=400, body='Format should be: "eth_dst": "00:00:00:00:00:00", "eth_src": "00:00:00:00:00:00", "priority" : 0, "table_id" : 0\n')
-            
-            for key, value in req.json.items():
 
-                if (key == "eth_src"):
-                    # Regex from https://stackoverflow.com/a/7629690/7189378
-                    if not re.match("[0-9a-f]{2}([:])[0-9a-f]{2}(\\1[0-9a-f]{2}){4}$", value.lower()):
-                        return Response(content_type='text/plain',status=400, body='MAC Address should be in form: "00:00:00:00:00:00"\n')
-                    
-                    eth_src = value
-                if (key == "eth_dst"):
-                    if not re.match("[0-9a-f]{2}([:])[0-9a-f]{2}(\\1[0-9a-f]{2}){4}$", value.lower()):
-                        return Response(content_type='text/plain',status=400, body='MAC Address should be in form: "00:00:00:00:00:00"\n')
-                    eth_dst = value
-                if (key == "priority"):
-                    priority = value
-                if (key == "table_id"):
-                    table_id = value
+            eth_dst, eth_src, priority, table_id = valid_tuple
+            self.process_bus_app.modify_drop_packets(datapath, waiters, eth_dst, eth_src, priority, table_id)
+
+            process_bus_app = self.process_bus_app
+            # meter_stats = process_bus_app.meter_stats
+            # body = json.dumps(meter_stats)
+
+            return Response(content_type='text/plain', body='OK\n')
 
         else:
             # TODO: Shall we also include an informational message?
             return Response(content_type='text/plain',status=400)
         
-        self.process_bus_app.modify_drop_packets(datapath, waiters, eth_dst, eth_src, priority, table_id)
-
-        process_bus_app = self.process_bus_app
-        # meter_stats = process_bus_app.meter_stats
-        # body = json.dumps(meter_stats)
-
-        return Response(content_type='text/plain', body='OK\n')
 
 
     # Below are the endpoints for retrieving the flows log.
