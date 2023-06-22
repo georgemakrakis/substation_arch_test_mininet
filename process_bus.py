@@ -38,6 +38,8 @@ class process_bus(app_manager.RyuApp):
     OFP_VERSIONS = [ofproto_v1_3.OFP_VERSION]
     _CONTEXTS = {'wsgi': WSGIApplication}
 
+    block_comms = {}
+
     def __init__(self, *args, **kwargs):
         super(process_bus, self).__init__(*args, **kwargs)
         self.mac_to_port = {} # The mac address table is empty initially.
@@ -103,7 +105,7 @@ class process_bus(app_manager.RyuApp):
         # <Host tmu5: tmu5-eth0:192.168.1.6 pid=65046>
 
         # TODO: Can we parse each one of those from a CSV or JSON file?
-        block_comms = [
+        self.block_comms = [
             # For 351_1
             ("192.168.1.10", "192.168.1.7", "00:00:00:00:00:10", "00:00:00:00:00:07"),
             ("192.168.1.10", "192.168.1.5", "00:00:00:00:00:10", "00:00:00:00:00:05"),
@@ -235,13 +237,13 @@ class process_bus(app_manager.RyuApp):
         #     print(f"{block_comms_IP[i][0]} with {block_comms_IP[i][1]}")
         #     print(f"and {block_comms_IP[i][1]} with {block_comms_IP[i][0]}")
 
-        for i in range(len(block_comms)):
+        for i in range(len(self.block_comms)):
             match = parser.OFPMatch(
                 eth_type = 0x0800,
-                ipv4_src=(block_comms[i][0]),
-                ipv4_dst=(block_comms[i][1]),
-                eth_src=(block_comms[i][2]),
-                eth_dst=(block_comms[i][3])
+                ipv4_src=(self.block_comms[i][0]),
+                ipv4_dst=(self.block_comms[i][1]),
+                eth_src=(self.block_comms[i][2]),
+                eth_dst=(self.block_comms[i][3])
             )
             # Empty actions will apply to drop the packet
             actions = []
@@ -266,10 +268,10 @@ class process_bus(app_manager.RyuApp):
             # Block the other side as well
             # match = parser.OFPMatch(
             #     eth_type = 0x0800,
-            #     ipv4_src=(block_comms[i][1]),
-            #     ipv4_dst=(block_comms[i][0]),
-            #     eth_src=(block_comms[i][3]),
-            #     eth_dst=(block_comms[i][2])
+            #     ipv4_src=(self.block_comms[i][1]),
+            #     ipv4_dst=(self.block_comms[i][0]),
+            #     eth_src=(self.block_comms[i][3]),
+            #     eth_dst=(self.block_comms[i][2])
             # )
             # # Empty actions should apply to drop the packet
             # actions = []
@@ -278,6 +280,14 @@ class process_bus(app_manager.RyuApp):
             
             # mod = parser.OFPFlowMod(datapath=datapath, table_id=0, priority=2, match=match, instructions=inst)
             # datapath.send_msg(mod)
+
+        # Drop any traffic coming from Port 20 wich is the IDS
+        match_3 = parser.OFPMatch(in_port=20)
+        actions_3 = []
+        inst = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS,
+                                            actions_3)]
+
+        self.add_flow(datapath, 3, command, match_3, inst, waiters, "IDS_drop", 0)
 
         
 
@@ -359,16 +369,21 @@ class process_bus(app_manager.RyuApp):
         command=ofproto.OFPFC_ADD
         waiters = {}
 
-        # install a flow to avoid packet_in next time
-        if out_port != ofproto.OFPP_FLOOD:
-            match = parser.OFPMatch(in_port=in_port, eth_dst=dst, eth_src=src)
-            # verify if we have a valid buffer_id, if yes avoid to send both
-            # flow_mod & packet_out
-            if msg.buffer_id != ofproto.OFP_NO_BUFFER:
-                self.add_flow(datapath, 1, command, match, inst, waiters, "packet_in", 0, 0, msg.buffer_id)
-                return
-            else:
-                self.add_flow(datapath, 1, command, match, inst, waiters, "packet_in", 0, 0)
+        block_exists = [tuple for tuple in self.block_comms if any(dst == i for i in tuple) and any(src == i for i in tuple)]
+
+        if (not block_exists):
+
+            # install a flow to avoid packet_in next time
+            if out_port != ofproto.OFPP_FLOOD:
+                match = parser.OFPMatch(in_port=in_port, eth_dst=dst, eth_src=src)
+                # verify if we have a valid buffer_id, if yes avoid to send both
+                # flow_mod & packet_out
+                if msg.buffer_id != ofproto.OFP_NO_BUFFER:
+                    self.add_flow(datapath, 1, command, match, inst, waiters, "packet_in", 0, 0, msg.buffer_id)
+                    return
+                else:
+                    self.add_flow(datapath, 1, command, match, inst, waiters, "packet_in", 0, 0)
+                
         data = None
         if msg.buffer_id == ofproto.OFP_NO_BUFFER:
             data = msg.data
@@ -543,7 +558,10 @@ class process_bus(app_manager.RyuApp):
         # actions = [ofp_parser.OFPActionOutput(20)]
         actions = []
 
-        inst = [ofp_parser.OFPInstructionActions(ofp.OFPIT_APPLY_ACTIONS,
+        # inst = [ofp_parser.OFPInstructionActions(ofp.OFPIT_APPLY_ACTIONS,
+        #                                      actions)]
+        
+        inst = [ofp_parser.OFPInstructionActions(ofp.OFPIT_CLEAR_ACTIONS,
                                              actions)]
 
         # NOTE: The above "TODO" questions are still valid and need to be addressed.
