@@ -353,7 +353,7 @@ class process_bus(app_manager.RyuApp):
         self.logger.info("packet in switch %s SRC: %s DST: %s IN_PORT: %s", dpid, src, dst, in_port)
         if eth.ethertype == ether_types.ETH_TYPE_ARP:
             self.logger.info("with protocol ARP")
-            
+
         # learn a mac address to avoid FLOOD next time.
         self.mac_to_port[dpid][src] = in_port
 
@@ -554,15 +554,13 @@ class process_bus(app_manager.RyuApp):
         # NOTE: All the below are for a very specific flow, need to generalize
         match = ofp_parser.OFPMatch(eth_dst=ether_dst, eth_src=ether_src)
 
-        # TODO: Shal we just forward it to the IDS (port 20) to create an alert anyways?
-        # actions = [ofp_parser.OFPActionOutput(20)]
-        actions = []
+        actions = [ofp_parser.OFPActionOutput(20)]
 
-        # inst = [ofp_parser.OFPInstructionActions(ofp.OFPIT_APPLY_ACTIONS,
-        #                                      actions)]
-        
-        inst = [ofp_parser.OFPInstructionActions(ofp.OFPIT_CLEAR_ACTIONS,
+        inst = [ofp_parser.OFPInstructionActions(ofp.OFPIT_APPLY_ACTIONS,
                                              actions)]
+        
+        # inst = [ofp_parser.OFPInstructionActions(ofp.OFPIT_CLEAR_ACTIONS,
+                                            #  actions)]
 
         # NOTE: The above "TODO" questions are still valid and need to be addressed.
         command=ofp.OFPFC_MODIFY
