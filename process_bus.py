@@ -233,9 +233,7 @@ class process_bus(app_manager.RyuApp):
             ("192.168.1.13", "192.168.1.15", "00:00:00:00:00:13", "00:00:00:00:00:15"),
         ]
 
-        # for i in range(len(block_comms_IP)):
-        #     print(f"{block_comms_IP[i][0]} with {block_comms_IP[i][1]}")
-        #     print(f"and {block_comms_IP[i][1]} with {block_comms_IP[i][0]}")
+        # NOTE: The below is not bidirectional !!!
 
         for i in range(len(self.block_comms)):
             match = parser.OFPMatch(
@@ -250,7 +248,7 @@ class process_bus(app_manager.RyuApp):
             # TODO: Shal we just forward it to the IDS (port 20) to create an alert anyways?
             # actions = [ofp_parser.OFPActionOutput(20)]
 
-            inst = [parser.OFPInstructionActions(ofproto.OFPIT_CLEAR_ACTIONS,
+            inst = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS,
                                                 actions)]
             
             # TODO: Need to check the datapath IDs here so we will not apply the same rules to all switches.
@@ -353,7 +351,9 @@ class process_bus(app_manager.RyuApp):
         self.mac_to_port.setdefault(dpid, {})
 
         self.logger.info("packet in switch %s SRC: %s DST: %s IN_PORT: %s", dpid, src, dst, in_port)
-
+        if eth.ethertype == ether_types.ETH_TYPE_ARP:
+            self.logger.info("with protocol ARP")
+            
         # learn a mac address to avoid FLOOD next time.
         self.mac_to_port[dpid][src] = in_port
 
