@@ -369,7 +369,8 @@ class process_bus(app_manager.RyuApp):
         command=ofproto.OFPFC_ADD
         waiters = {}
 
-        block_exists = [tuple for tuple in self.block_comms if any(dst == i for i in tuple) and any(src == i for i in tuple)]
+        block_exists = [tuple for tuple in self.block_comms if any(dst == i for i in tuple) 
+                                                            and any(src == i for i in tuple)]
 
         if (not block_exists):
 
@@ -445,6 +446,7 @@ class process_bus(app_manager.RyuApp):
         ofp = datapath.ofproto
 
         # Setting the meter here
+        # TODO: The following are arbitrary, they need to be setted with variables
         bands = []
         dropband = ofp_parser.OFPMeterBandDrop(rate=2, burst_size=1)
         bands.append(dropband)
@@ -554,34 +556,42 @@ class process_bus(app_manager.RyuApp):
         # NOTE: All the below are for a very specific flow, need to generalize
         match = ofp_parser.OFPMatch(eth_dst=ether_dst, eth_src=ether_src)
 
+        # We just add the mirroring of packet to the IDS and dropping the other
         actions = [ofp_parser.OFPActionOutput(20)]
-
         inst = [ofp_parser.OFPInstructionActions(ofp.OFPIT_APPLY_ACTIONS,
                                              actions)]
         
         # inst = [ofp_parser.OFPInstructionActions(ofp.OFPIT_CLEAR_ACTIONS,
                                             #  actions)]
-
-        # NOTE: The above "TODO" questions are still valid and need to be addressed.
+        
         command=ofp.OFPFC_MODIFY
         self.add_flow(datapath, priority, command, match, inst, waiters, "drop_packets", table_id)
- 
-        # waiters_per_datapath = waiters.setdefault(datapath.id, {})
-        # event = hub.Event()
-        # msgs = []
-        # waiters_per_datapath[drop_mod.xid] = (event, msgs)
 
-        # datapath.send_msg(drop_mod)
+    def modify_allow_packets(self, datapath, waiters, ether_dst, ether_src, priority, table_id):
+        ofp_parser = datapath.ofproto_parser
+        ofp = datapath.ofproto
+        dpid = datapath.id
         
-        # try:
-            
-        #     event.wait(timeout=OFP_REPLY_TIMER)
-        #     self.flow_log("drop_packets", drop_mod.to_jsondict())
-        # except hub.Timeout:
-        #     del waiters_per_datapath[drop_mod.xid]
-        #     self.flow_log("msg_timeout_drop_packets", drop_mod.to_jsondict())
-        # except Exception as ex:
-        #     print(f"modify_drop_packets exception: {ex}")
+        # NOTE: All the below are for a very specific flow, need to generalize
+        match = ofp_parser.OFPMatch(eth_dst=ether_dst, eth_src=ether_src)
+
+        out_port = None
+        
+        if ether_dst in self.mac_to_port[dpid]:
+            out_port = self.mac_to_port[dpid][ether_dst]
+
+        actions = [ofp_parser.OFPActionOutput(out_port), ofp_parser.OFPActionOutput(20)]
+        inst = [ofp_parser.OFPInstructionActions(ofp.OFPIT_APPLY_ACTIONS,
+                                             actions)]
+        
+        command=ofp.OFPFC_MODIFY
+        waiters = {}
+
+        block_exists = [tuple for tuple in self.block_comms if any(ether_dst == i for i in tuple) 
+                                                            and any(ether_src == i for i in tuple)]
+
+        if (not block_exists):
+            self.add_flow(datapath, priority, command, match, inst, waiters, "drop_packets", table_id)
 
 class ProcessBussController(ControllerBase):
 
@@ -604,7 +614,7 @@ class ProcessBussController(ControllerBase):
 
         tuple_ret = ()
 
-        if "eth_dst" not in json_req or "eth_src" not in json_req or "priority" not in json_req or "table_id" not in json_req:
+        if "eth_dst" not in json_req or "eth_src" not in json_req or "priority" not in json_req or "table_id" not in json_req or "action" not in json_req:
             # return Response(content_type='text/plain',status=400, body='Format should be: "eth_dst": "00:00:00:00:00:00", "eth_src": "00:00:00:00:00:00", "priority" : 0, "table_id" : 0\n')
             return ()
         
@@ -630,6 +640,10 @@ class ProcessBussController(ControllerBase):
                 tuple_ret = tuple_ret + (value,)
 
             if (key == "table_id"):
+                # table_id = value
+                tuple_ret = tuple_ret + (value,)
+
+            if (key == "action"):
                 # table_id = value
                 tuple_ret = tuple_ret + (value,)
 
@@ -666,8 +680,8 @@ class ProcessBussController(ControllerBase):
 
         if (req.json):
             valid_tuple = self.validate_POST(req.json)
-            if (len(valid_tuple) != 4):
-                return Response(content_type='text/plain',status=400, body='Format should be: "eth_dst": "00:00:00:00:00:00", "eth_src": "00:00:00:00:00:00", "priority" : 0, "table_id" : 0\n')
+            if (len(valid_tuple) != 5):
+                return Response(content_type='text/plain',status=400, body='Format should be: "eth_dst": "00:00:00:00:00:00", "eth_src": "00:00:00:00:00:00", "priority" : 0, "table_id" : 0, "action" : "<drop, add>"\n')
 
             eth_dst, eth_src, priority, table_id = valid_tuple
             self.process_bus_app.set_metering(datapath, waiters, eth_dst, eth_src, priority, table_id)
@@ -699,7 +713,7 @@ class ProcessBussController(ControllerBase):
         # return Response(content_type='text/plain', body="OK\n")
 
     @route('processBus', urlModifyRule, methods=['POST'])
-    def drop_packets(self, req, **kwargs):
+    def modify(self, req, **kwargs):
 
         datapath = self.process_bus_app.datapath
         waiters = {}
@@ -711,11 +725,14 @@ class ProcessBussController(ControllerBase):
 
         if (req.json):
             valid_tuple = self.validate_POST(req.json)
-            if (len(valid_tuple) != 4):
-                return Response(content_type='text/plain',status=400, body='Format should be: "eth_dst": "00:00:00:00:00:00", "eth_src": "00:00:00:00:00:00", "priority" : 0, "table_id" : 0\n')
+            if (len(valid_tuple) != 5):
+                return Response(content_type='text/plain',status=400, body='Format should be: "eth_dst": "00:00:00:00:00:00", "eth_src": "00:00:00:00:00:00", "priority" : 0, "table_id" : 0, "action" : "<drop, add>"\n')
 
-            eth_dst, eth_src, priority, table_id = valid_tuple
-            self.process_bus_app.modify_drop_packets(datapath, waiters, eth_dst, eth_src, priority, table_id)
+            eth_dst, eth_src, priority, table_id, action = valid_tuple
+            if action == "drop":
+                self.process_bus_app.modify_drop_packets(datapath, waiters, eth_dst, eth_src, priority, table_id)
+            elif action == "add":
+                self.process_bus_app.modify_add(datapath, waiters, eth_dst, eth_src, priority, table_id)
 
             process_bus_app = self.process_bus_app
             # meter_stats = process_bus_app.meter_stats
