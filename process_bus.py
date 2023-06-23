@@ -548,7 +548,7 @@ class process_bus(app_manager.RyuApp):
         except Exception as ex:
             print(f"send_meter_stats_request exception: {ex}")
 
-
+    # TODO: The following 2 functions can be combined since their only difference are the actions and out_port check. 
     def modify_drop_packets(self, datapath, waiters, ether_dst, ether_src, priority, table_id):
         ofp_parser = datapath.ofproto_parser
         ofp = datapath.ofproto
