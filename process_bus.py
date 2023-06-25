@@ -21,7 +21,7 @@ from ryu.app.wsgi import ControllerBase, WSGIApplication, route
 from webob import Response
 
 processBus_app_instance_name = 'processBus_app'
-urlAll = '/processBus/getStats/{inPort}'
+urlStatsAll = '/processBus/getStats/{tableId}/{inPort}'
 urlMeter = '/processBus/meter'
 urlMeterStatsAll = '/processBus/getMeterStats'
 urlModifyRule = '/processBus/modifyRule'
@@ -77,33 +77,17 @@ class process_bus(app_manager.RyuApp):
         
         waiters = {}
         command = ofproto.OFPFC_ADD
+
+        # Table 0 is the ACL and Table 1 the forwarding of packets using MAC learning
+        self.add_flow(datapath, 0, command, match, inst, waiters, "controller_handling", 1)
+
+        # TODO: Do we need to send it to the IDS as well?
+        
+        inst = [parser.OFPInstructionGotoTable(1)]
+        
         self.add_flow(datapath, 0, command, match, inst, waiters, "controller_handling", 0)
 
-        # ICMP drop flow example
-        # match = parser.OFPMatch(eth_type=ether_types.ETH_TYPE_IP, ip_proto=in_proto.IPPROTO_ICMP)
-        # mod = parser.OFPFlowMod(datapath=datapath, table_id=0, priority=10000, match=match)
-        # datapath.send_msg(mod)
-
-        # TODO: Shall we create an automated way using a few loops to apply all the default rules that we want?
-        # Do it for ICMP first as an example until we figure out the usage of protocols.
-
-        # <Host 351_1: 351_1-eth0:192.168.1.10 pid=64967> 
-        # <Host 351_2: 351_2-eth0:192.168.1.9 pid=64969> 
-        # <Host 451_1: 451_1-eth0:192.168.1.7 pid=64978> 
-        # <Host 451_2: 451_2-eth0:192.168.1.8 pid=64996> 
-        # <Host 487B: 487B-eth0:192.168.1.11 pid=64998> 
-        # <Host 487E: 487E-eth0:192.168.1.12 pid=65000> 
-        # <Host 651R_1: 651R_1-eth0:192.168.1.14 pid=65002> 
-        # <Host 651R_2: 651R_2-eth0:192.168.1.15 pid=65021> 
-        # <Host 787_2: 787_2-eth0:192.168.1.13 pid=65023> 
-        # <Host RTAC: RTAC-eth0:192.168.1.16 pid=65025> 
-
-        # <Host tmu1: tmu1-eth0:192.168.1.2 pid=65038> 
-        # <Host tmu2: tmu2-eth0:192.168.1.3 pid=65040> 
-        # <Host tmu3: tmu3-eth0:192.168.1.4 pid=65042> 
-        # <Host tmu4: tmu4-eth0:192.168.1.5 pid=65044> 
-        # <Host tmu5: tmu5-eth0:192.168.1.6 pid=65046>
-
+        # Essentially these are ACL entries that block specific communications.
         # TODO: Can we parse each one of those from a CSV or JSON file?
         self.block_comms = [
             # For 351_1
@@ -279,7 +263,7 @@ class process_bus(app_manager.RyuApp):
             # mod = parser.OFPFlowMod(datapath=datapath, table_id=0, priority=2, match=match, instructions=inst)
             # datapath.send_msg(mod)
 
-        # Drop any traffic coming from Port 20 wich is the IDS
+        # Drop any traffic coming from Port 20 which is the IDS
         match_3 = parser.OFPMatch(in_port=20)
         actions_3 = []
         inst = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS,
@@ -369,9 +353,9 @@ class process_bus(app_manager.RyuApp):
         command=ofproto.OFPFC_ADD
         waiters = {}
 
+
         block_exists = [tuple for tuple in self.block_comms if any(dst == i for i in tuple) 
                                                             and any(src == i for i in tuple)]
-
         if (not block_exists):
 
             # install a flow to avoid packet_in next time
@@ -380,10 +364,10 @@ class process_bus(app_manager.RyuApp):
                 # verify if we have a valid buffer_id, if yes avoid to send both
                 # flow_mod & packet_out
                 if msg.buffer_id != ofproto.OFP_NO_BUFFER:
-                    self.add_flow(datapath, 1, command, match, inst, waiters, "packet_in", 0, 0, msg.buffer_id)
+                    self.add_flow(datapath, 1, command, match, inst, waiters, "packet_in", 1, 0, msg.buffer_id)
                     return
                 else:
-                    self.add_flow(datapath, 1, command, match, inst, waiters, "packet_in", 0, 0)
+                    self.add_flow(datapath, 1, command, match, inst, waiters, "packet_in", 1, 0)
                 
         data = None
         if msg.buffer_id == ofproto.OFP_NO_BUFFER:
@@ -489,24 +473,34 @@ class process_bus(app_manager.RyuApp):
         #     print(f"set_meter exception: {ex}")
     
 
-    def send_flow_stats_request(self, datapath, in_port, waiters):
+    def send_flow_stats_request(self, datapath, in_port, waiters, table_id):
         ofp = datapath.ofproto
         ofp_parser = datapath.ofproto_parser
 
         cookie = cookie_mask = 0
+
+        match = table_id_int = None
         
         if in_port:
             try:
                 in_port_int = int(in_port)
                 match = ofp_parser.OFPMatch()
+
+                table_id_int = int(table_id)
                 
                 if in_port_int != 0:
-                    match = ofp_parser.OFPMatch(in_port=in_port_int)
+                    # match = ofp_parser.OFPMatch(in_port=in_port_int)
+                    match = ofp_parser.OFPMatch(in_port=1)
+                else:
+                    print("Port 0 requested")
+                    return -1
             except ValueError as er:
-                print("The provided in_port is not a number")
+                print("The provided in_port or table_id is not a number")
+                return -1
         
+        # req = ofp_parser.OFPFlowStatsRequest(datapath, table_id_int,
         req = ofp_parser.OFPFlowStatsRequest(datapath, 0,
-                                            ofp.OFPTT_ALL,
+                                            table_id_int,
                                             ofp.OFPP_ANY, ofp.OFPG_ANY,
                                             cookie, cookie_mask,
                                             match)
@@ -651,18 +645,29 @@ class ProcessBussController(ControllerBase):
         return tuple_ret
 
 
-    @route('processBus', urlAll, methods=['GET'])
+    @route('processBus', urlStatsAll, methods=['GET'])
     def get_flow_stats(self, req, **kwargs):
         datapath = self.process_bus_app.datapath
+        table_id = kwargs['tableId']
         in_port = kwargs['inPort']
 
         waiters = {}
         
-        self.process_bus_app.send_flow_stats_request(datapath, in_port, waiters)
+        self.process_bus_app.send_flow_stats_request(datapath, in_port, waiters, table_id)
 
         process_bus_app = self.process_bus_app
         flows_stats = process_bus_app.flows_stats
+
+        # ... and then for the regular flow handling
+        # table_id = 1
+
+        # self.process_bus_app.send_flow_stats_request(datapath, in_port, waiters, table_id)
+
+        # process_bus_app = self.process_bus_app
+        # flows_stats += process_bus_app.flows_stats
+
         body = json.dumps(flows_stats)
+        process_bus_app.flows_stats = []
 
         return Response(content_type='text/json', body=body)
         # return Response(content_type='text/plain', body="OK\n")
