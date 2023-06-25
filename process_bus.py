@@ -425,33 +425,47 @@ class process_bus(app_manager.RyuApp):
         with open(f"{path}/json_mod_{origin}_{time.strftime('%Y%m%d-%H%M%S')}.json", "w") as json_file:
             json_file.write(json_object)
 
-    def set_metering(self, datapath, waiters, ether_dst, ether_src, priority, table_id):
+    def set_metering(self, datapath, waiters, ether_dst, ether_src, priority, table_id, action):
         ofp_parser = datapath.ofproto_parser
         ofp = datapath.ofproto
+        dpid = datapath.id
 
-        # Setting the meter here
-        # TODO: The following are arbitrary, they need to be setted with variables
-        bands = []
-        dropband = ofp_parser.OFPMeterBandDrop(rate=2, burst_size=1)
-        bands.append(dropband)
-        meter_request = ofp_parser.OFPMeterMod(datapath=datapath,
-                                        command=ofp.OFPMC_ADD,
-                                        flags=ofp.OFPMF_PKTPS,
-                                        meter_id=1,
-                                        bands=bands)
-        datapath.send_msg(meter_request)
+        out_port = in_port = None
+        
+        if ether_dst in self.mac_to_port[dpid]:
+            out_port = self.mac_to_port[dpid][ether_dst]
 
-        #now meter_id=1 will be applied to the flow of in_port 1
+        if ether_src in self.mac_to_port[dpid]:
+            in_port = self.mac_to_port[dpid][ether_src]
 
-        match = ofp_parser.OFPMatch(in_port=1, eth_dst=ether_dst, eth_src=ether_src)
 
-        # TODO: So we will not have hardcoded ports next.
-        # if dst in self.mac_to_port[dpid]:
-        #     out_port = self.mac_to_port[dpid][dst]
+        match = ofp_parser.OFPMatch(in_port=in_port, eth_dst=ether_dst, eth_src=ether_src)
 
-        actions = [ofp_parser.OFPActionOutput(11), ofp_parser.OFPActionOutput(20)]
+        actions = [ofp_parser.OFPActionOutput(out_port), ofp_parser.OFPActionOutput(20)]
 
-        inst = [ofp_parser.OFPInstructionActions(ofp.OFPIT_APPLY_ACTIONS, actions),ofp_parser.OFPInstructionMeter(1)]
+        if action == "add":
+            # Setting the meter here
+            # TODO: The following are arbitrary, they need to be setted with variables
+            bands = []
+            dropband = ofp_parser.OFPMeterBandDrop(rate=2, burst_size=1)
+            bands.append(dropband)
+            meter_request = ofp_parser.OFPMeterMod(datapath=datapath,
+                                            command=ofp.OFPMC_ADD,
+                                            flags=ofp.OFPMF_PKTPS,
+                                            meter_id=1,
+                                            bands=bands)
+            datapath.send_msg(meter_request)
+
+            inst = [ofp_parser.OFPInstructionActions(ofp.OFPIT_APPLY_ACTIONS, actions),ofp_parser.OFPInstructionMeter(1)]
+        elif action == "delete":
+
+            meter_request = ofp_parser.OFPMeterMod(datapath=datapath,
+                                            command=ofp.OFPMC_DELETE,
+                                            flags=ofp.OFPMF_PKTPS,
+                                            meter_id=1)
+            datapath.send_msg(meter_request)
+        
+            inst = [ofp_parser.OFPInstructionActions(ofp.OFPIT_APPLY_ACTIONS, actions)]
         
         command=ofp.OFPFC_MODIFY
         self.add_flow(datapath, priority, command, match, inst, waiters, "set_meter", table_id, OFP_REPLY_TIMER)
@@ -686,10 +700,10 @@ class ProcessBussController(ControllerBase):
         if (req.json):
             valid_tuple = self.validate_POST(req.json)
             if (len(valid_tuple) != 5):
-                return Response(content_type='text/plain',status=400, body='Format should be: "eth_dst": "00:00:00:00:00:00", "eth_src": "00:00:00:00:00:00", "priority" : 0, "table_id" : 0, "action" : "<drop, add>"\n')
+                return Response(content_type='text/plain',status=400, body='Format should be: "eth_dst": "00:00:00:00:00:00", "eth_src": "00:00:00:00:00:00", "priority" : 0, "table_id" : 0, "action" : "<delete, add>"\n')
 
-            eth_dst, eth_src, priority, table_id = valid_tuple
-            self.process_bus_app.set_metering(datapath, waiters, eth_dst, eth_src, priority, table_id)
+            eth_dst, eth_src, priority, table_id, action = valid_tuple
+            self.process_bus_app.set_metering(datapath, waiters, eth_dst, eth_src, priority, table_id, action)
 
             process_bus_app = self.process_bus_app
             # meter_stats = process_bus_app.meter_stats
@@ -737,7 +751,7 @@ class ProcessBussController(ControllerBase):
             if action == "drop":
                 self.process_bus_app.modify_drop_packets(datapath, waiters, eth_dst, eth_src, priority, table_id)
             elif action == "add":
-                self.process_bus_app.modify_add(datapath, waiters, eth_dst, eth_src, priority, table_id)
+                self.process_bus_app.modify_allow_packets(datapath, waiters, eth_dst, eth_src, priority, table_id)
 
             process_bus_app = self.process_bus_app
             # meter_stats = process_bus_app.meter_stats
