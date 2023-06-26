@@ -79,13 +79,12 @@ class process_bus(app_manager.RyuApp):
         command = ofproto.OFPFC_ADD
 
         # Table 0 is the ACL and Table 1 the forwarding of packets using MAC learning
-        self.add_flow(datapath, 0, command, match, inst, waiters, "controller_handling", 1)
+        self.add_flow(datapath=datapath, priority=0, command=command, match=match, inst=inst, waiters=waiters, log_action="controller_handling", table_id=1)
 
         # TODO: Do we need to send it to the IDS as well?
         
         inst = [parser.OFPInstructionGotoTable(1)]
-        
-        self.add_flow(datapath, 0, command, match, inst, waiters, "controller_handling", 0)
+        self.add_flow(datapath=datapath, priority=0, command=command, match=match, inst=inst, waiters=waiters, log_action="controller_handling", table_id=0)
 
         # Essentially these are ACL entries that block specific communications.
         # TODO: Can we parse each one of those from a CSV or JSON file?
@@ -243,7 +242,7 @@ class process_bus(app_manager.RyuApp):
             # waiters = {}
             # self.add_flow(datapath, 0, match, inst, waiters, "controller_handling")
 
-            self.flow_log("default_flows", mod.to_jsondict())
+            self.flow_log(origin="default_flows", flow_json=mod.to_jsondict())
 
             # NOTE: This is not needed since each device will decide where it talks based on the above
             # Also we might want to prevent comms to one direction only (e.g. 451_1 --> 351_1 but NOT 451_1 <-- 351_1)
@@ -269,7 +268,8 @@ class process_bus(app_manager.RyuApp):
         inst = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS,
                                             actions_3)]
 
-        self.add_flow(datapath, 3, command, match_3, inst, waiters, "IDS_drop", 0)
+        # self.add_flow(datapath, 3, command, match_3, inst, waiters, "IDS_drop", 0)
+        self.add_flow(datapath=datapath, priority=3, command=command, match=match_3, inst=inst, waiters=waiters, log_action="IDS_drop", table_id=0)
 
         
 
@@ -364,10 +364,11 @@ class process_bus(app_manager.RyuApp):
                 # verify if we have a valid buffer_id, if yes avoid to send both
                 # flow_mod & packet_out
                 if msg.buffer_id != ofproto.OFP_NO_BUFFER:
-                    self.add_flow(datapath, 1, command, match, inst, waiters, "packet_in", 1, 0, msg.buffer_id)
+                    self.add_flow(datapath=datapath, priority=1, command=command, match=match, inst=inst, waiters=waiters, log_action="packet_in", 
+                                  table_id=1, timeout=0, buffer_id=msg.buffer_id)
                     return
                 else:
-                    self.add_flow(datapath, 1, command, match, inst, waiters, "packet_in", 1, 0)
+                    self.add_flow(datapath=datapath, priority=1, command=command, match=match, inst=inst, waiters=waiters, log_action="packet_in", table_id=1, timeout=0)
                 
         data = None
         if msg.buffer_id == ofproto.OFP_NO_BUFFER:
@@ -468,7 +469,9 @@ class process_bus(app_manager.RyuApp):
             inst = [ofp_parser.OFPInstructionActions(ofp.OFPIT_APPLY_ACTIONS, actions)]
         
         command=ofp.OFPFC_MODIFY
-        self.add_flow(datapath, priority, command, match, inst, waiters, "set_meter", table_id, OFP_REPLY_TIMER)
+        # self.add_flow(datapath, priority, command, match, inst, waiters, "set_meter", table_id, OFP_REPLY_TIMER)
+        self.add_flow(datapath=datapath, priority=priority, command=command, match=match, inst=inst, waiters=waiters, log_action="set_meter", 
+                      table_id=table_id, timeout=OFP_REPLY_TIMER)
 
         # waiters_per_datapath = waiters.setdefault(datapath.id, {})
         # event = hub.Event()
@@ -573,7 +576,8 @@ class process_bus(app_manager.RyuApp):
                                             #  actions)]
         
         command=ofp.OFPFC_MODIFY
-        self.add_flow(datapath, priority, command, match, inst, waiters, "drop_packets", table_id)
+        # self.add_flow(datapath, priority, command, match, inst, waiters, "drop_packets", table_id)
+        self.add_flow(datapath=datapath, priority=priority, command=command, match=match, inst=inst, waiters=waiters, log_action="drop_packets", table_id=table_id)
 
     def modify_allow_packets(self, datapath, waiters, ether_dst, ether_src, priority, table_id):
         ofp_parser = datapath.ofproto_parser
@@ -599,7 +603,7 @@ class process_bus(app_manager.RyuApp):
                                                             and any(ether_src == i for i in tuple)]
 
         if (not block_exists):
-            self.add_flow(datapath, priority, command, match, inst, waiters, "drop_packets", table_id)
+            self.add_flow(datapath=datapath, priority=priority, command=command, match=match, inst=inst, waiters=waiters, log_action="drop_packets", table_id=table_id)
 
 class ProcessBussController(ControllerBase):
 
