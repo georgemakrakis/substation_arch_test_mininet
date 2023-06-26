@@ -432,6 +432,7 @@ class process_bus(app_manager.RyuApp):
         dpid = datapath.id
 
         out_port = in_port = None
+        inst = None
         
         if ether_dst in self.mac_to_port[dpid]:
             out_port = self.mac_to_port[dpid][ether_dst]
@@ -469,9 +470,11 @@ class process_bus(app_manager.RyuApp):
             inst = [ofp_parser.OFPInstructionActions(ofp.OFPIT_APPLY_ACTIONS, actions)]
         
         command=ofp.OFPFC_MODIFY
-        # self.add_flow(datapath, priority, command, match, inst, waiters, "set_meter", table_id, OFP_REPLY_TIMER)
-        self.add_flow(datapath=datapath, priority=priority, command=command, match=match, inst=inst, waiters=waiters, log_action="set_meter", 
-                      table_id=table_id, timeout=OFP_REPLY_TIMER)
+        if (inst and match and table_id):
+            self.add_flow(datapath=datapath, priority=priority, command=command, match=match, inst=inst, waiters=waiters, log_action="set_meter", 
+                        table_id=table_id, timeout=OFP_REPLY_TIMER)
+        else:
+            raise Exception("set_metering values are not set")
 
         # waiters_per_datapath = waiters.setdefault(datapath.id, {})
         # event = hub.Event()
@@ -576,8 +579,11 @@ class process_bus(app_manager.RyuApp):
                                             #  actions)]
         
         command=ofp.OFPFC_MODIFY
-        # self.add_flow(datapath, priority, command, match, inst, waiters, "drop_packets", table_id)
-        self.add_flow(datapath=datapath, priority=priority, command=command, match=match, inst=inst, waiters=waiters, log_action="drop_packets", table_id=table_id)
+        if (inst and match and table_id):
+            self.add_flow(datapath=datapath, priority=priority, command=command, match=match, inst=inst, waiters=waiters, log_action="drop_packets", table_id=table_id)
+        else:
+            raise Exception("drop_packets values are not set")
+        
 
     def modify_allow_packets(self, datapath, waiters, ether_dst, ether_src, priority, table_id):
         ofp_parser = datapath.ofproto_parser
@@ -603,7 +609,14 @@ class process_bus(app_manager.RyuApp):
                                                             and any(ether_src == i for i in tuple)]
 
         if (not block_exists):
-            self.add_flow(datapath=datapath, priority=priority, command=command, match=match, inst=inst, waiters=waiters, log_action="drop_packets", table_id=table_id)
+            if (inst and match and table_id):
+                self.add_flow(datapath=datapath, priority=priority, command=command, match=match, inst=inst, waiters=waiters, log_action="allow_packets", table_id=table_id)
+            else:
+                raise Exception("allow_packets values are not set")
+        else:
+            raise Exception("block exists, flow was not set")
+        
+            
 
 class ProcessBussController(ControllerBase):
 
@@ -718,8 +731,6 @@ class ProcessBussController(ControllerBase):
         else:
             # TODO: Shall we also include an informational message?
             return Response(content_type='text/plain',status=400)
-
-        return Response(content_type='text/plain', body='OK\n')
 
     @route('processBus', urlMeterStatsAll, methods=['GET'])
     def get_meter_stats(self, req, **kwargs):
