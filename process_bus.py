@@ -86,6 +86,16 @@ class process_bus(app_manager.RyuApp):
         inst = [parser.OFPInstructionGotoTable(1)]
         self.add_flow(datapath=datapath, priority=0, command=command, match=match, inst=inst, waiters=waiters, log_action="controller_handling", table_id=0)
 
+        # Group Table 50 for IDS Forwarding
+        # Receiver port2, forward it to port1 and Port3
+
+        actions1 = [parser.OFPActionOutput(20)]
+        buckets = [parser.OFPBucket(actions=actions1)]
+        req = parser.OFPGroupMod(datapath=datapath, command=ofproto.OFPGC_ADD,
+                                 type_=ofproto.OFPGT_ALL, group_id=50, 
+                                 buckets=buckets)
+        datapath.send_msg(req)
+
         # Essentially these are ACL entries that block specific communications.
         # TODO: Can we parse each one of those from a CSV or JSON file?
         self.block_comms = [
@@ -347,7 +357,8 @@ class process_bus(app_manager.RyuApp):
             out_port = ofproto.OFPP_FLOOD
 
         # NOTE: Port 20 is the IDS
-        actions = [parser.OFPActionOutput(out_port), parser.OFPActionOutput(20)]
+        # actions = [parser.OFPActionOutput(out_port), parser.OFPActionOutput(20)]
+        actions = [parser.OFPActionOutput(out_port), parser.OFPActionGroup(group_id=50)]
         inst = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS,
                                              actions)]
         command=ofproto.OFPFC_ADD
