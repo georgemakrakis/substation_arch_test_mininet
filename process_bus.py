@@ -426,7 +426,7 @@ class process_bus(app_manager.RyuApp):
         with open(f"{path}/json_mod_{origin}_{time.strftime('%Y%m%d-%H%M%S')}.json", "w") as json_file:
             json_file.write(json_object)
 
-    def set_metering(self, datapath, waiters, ether_dst, ether_src, priority, table_id, action):
+    def set_metering(self, datapath, waiters, ether_dst, ether_src, priority, table_id, action, meter_id, rate, burst_size):
         ofp_parser = datapath.ofproto_parser
         ofp = datapath.ofproto
         dpid = datapath.id
@@ -449,12 +449,12 @@ class process_bus(app_manager.RyuApp):
             # Setting the meter here
             # TODO: The following are arbitrary, they need to be setted with variables
             bands = []
-            dropband = ofp_parser.OFPMeterBandDrop(rate=2, burst_size=1)
+            dropband = ofp_parser.OFPMeterBandDrop(rate=rate, burst_size=burst_size)
             bands.append(dropband)
             meter_request = ofp_parser.OFPMeterMod(datapath=datapath,
                                             command=ofp.OFPMC_ADD,
                                             flags=ofp.OFPMF_PKTPS,
-                                            meter_id=1,
+                                            meter_id=meter_id,
                                             bands=bands)
             datapath.send_msg(meter_request)
 
@@ -464,10 +464,12 @@ class process_bus(app_manager.RyuApp):
             meter_request = ofp_parser.OFPMeterMod(datapath=datapath,
                                             command=ofp.OFPMC_DELETE,
                                             flags=ofp.OFPMF_PKTPS,
-                                            meter_id=1)
+                                            meter_id=meter_id)
             datapath.send_msg(meter_request)
         
             inst = [ofp_parser.OFPInstructionActions(ofp.OFPIT_APPLY_ACTIONS, actions)]
+        else:
+            raise Exception("set_metering values are not set")
         
         command=ofp.OFPFC_MODIFY
         if (inst and match and table_id):
@@ -666,6 +668,18 @@ class ProcessBussController(ControllerBase):
                 # table_id = value
                 tuple_ret = tuple_ret + (value,)
 
+            if (key == "meter_id"):
+                # table_id = value
+                tuple_ret = tuple_ret + (value,)
+
+            if (key == "rate"):
+                # table_id = value
+                tuple_ret = tuple_ret + (value,)
+
+            if (key == "burst_size"):
+                # table_id = value
+                tuple_ret = tuple_ret + (value,)
+
         # print(f"AAAAAA {tuple_ret}")
         return tuple_ret
 
@@ -705,16 +719,27 @@ class ProcessBussController(ControllerBase):
 
         eth_dst = ""
         eth_src = ""
-        priority = ""
-        table_id = ""
+        priority = None
+        table_id = None
+        action = ""
+        meter_id = None
+        rate = None
+        burst_size = None
 
         if (req.json):
             valid_tuple = self.validate_POST(req.json)
-            if (len(valid_tuple) != 5):
-                return Response(content_type='text/plain',status=400, body='Format should be: "eth_dst": "00:00:00:00:00:00", "eth_src": "00:00:00:00:00:00", "priority" : 0, "table_id" : 0, "action" : "<delete, add>"\n')
+            print(f"LEEEEENNNN: {len(valid_tuple)}")
+            # if (len(valid_tuple) != 6 and len(valid_tuple) != 8):
+            #     return Response(content_type='text/plain',status=400, body='Format should be: "eth_dst": "00:00:00:00:00:00", "eth_src": "00:00:00:00:00:00", "priority" : 0, "table_id" : 0, "action" : "delete" \n OR .... "action" : "add",  "meter_id" : 1, "rate" : 0, "burst_size" : 0\n')
 
-            eth_dst, eth_src, priority, table_id, action = valid_tuple
-            self.process_bus_app.set_metering(datapath, waiters, eth_dst, eth_src, priority, table_id, action)
+            if (len(valid_tuple) == 8) :
+                eth_dst, eth_src, priority, table_id, action, meter_id, rate, burst_size = valid_tuple
+            elif (len(valid_tuple) == 6) :
+                eth_dst, eth_src, priority, table_id, action, meter_id = valid_tuple
+            else:
+                return Response(content_type='text/plain',status=400, body='Format should be: "eth_dst": "00:00:00:00:00:00", "eth_src": "00:00:00:00:00:00", "priority" : 0, "table_id" : 0, "action" : "delete" \n OR .... "action" : "add",  "meter_id" : 1, "rate" : 0, "burst_size" : 0\n')
+            
+            self.process_bus_app.set_metering(datapath, waiters, eth_dst, eth_src, priority, table_id, action, meter_id, rate, burst_size)
 
             process_bus_app = self.process_bus_app
             # meter_stats = process_bus_app.meter_stats
