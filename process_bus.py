@@ -24,7 +24,7 @@ processBus_app_instance_name = 'processBus_app'
 urlStatsAll = '/processBus/getStats/{tableId}/{inPort}'
 urlMeter = '/processBus/meter'
 urlMeterStatsAll = '/processBus/getMeterStats'
-urlModifyRule = '/processBus/modifyRule'
+urlModifyFlow = '/processBus/modifyFlow'
 
 urlGetDefaultFlows = '/processBus/defaultFlows'
 urlGetPacketInFlows = '/processBus/packetInFlows'
@@ -562,30 +562,7 @@ class process_bus(app_manager.RyuApp):
         except Exception as ex:
             print(f"send_meter_stats_request exception: {ex}")
 
-    # TODO: The following 2 functions can be combined since their only difference are the actions and out_port check. 
-    def modify_drop_packets(self, datapath, waiters, ether_dst, ether_src, priority, table_id):
-        ofp_parser = datapath.ofproto_parser
-        ofp = datapath.ofproto
-        
-        # NOTE: All the below are for a very specific flow, need to generalize
-        match = ofp_parser.OFPMatch(eth_dst=ether_dst, eth_src=ether_src)
-
-        # We just add the mirroring of packet to the IDS and dropping the other
-        actions = [ofp_parser.OFPActionOutput(20)]
-        inst = [ofp_parser.OFPInstructionActions(ofp.OFPIT_APPLY_ACTIONS,
-                                             actions)]
-        
-        # inst = [ofp_parser.OFPInstructionActions(ofp.OFPIT_CLEAR_ACTIONS,
-                                            #  actions)]
-        
-        command=ofp.OFPFC_MODIFY
-        if (inst and match and table_id):
-            self.add_flow(datapath=datapath, priority=priority, command=command, match=match, inst=inst, waiters=waiters, log_action="drop_packets", table_id=table_id)
-        else:
-            raise Exception("drop_packets values are not set")
-        
-
-    def modify_allow_packets(self, datapath, waiters, ether_dst, ether_src, priority, table_id):
+    def modify_flow(self, datapath, waiters, ether_dst, ether_src, priority, table_id, action):
         ofp_parser = datapath.ofproto_parser
         ofp = datapath.ofproto
         dpid = datapath.id
@@ -593,28 +570,45 @@ class process_bus(app_manager.RyuApp):
         # NOTE: All the below are for a very specific flow, need to generalize
         match = ofp_parser.OFPMatch(eth_dst=ether_dst, eth_src=ether_src)
 
-        out_port = None
-        
-        if ether_dst in self.mac_to_port[dpid]:
-            out_port = self.mac_to_port[dpid][ether_dst]
+        if action == "add":
 
-        actions = [ofp_parser.OFPActionOutput(out_port), ofp_parser.OFPActionOutput(20)]
-        inst = [ofp_parser.OFPInstructionActions(ofp.OFPIT_APPLY_ACTIONS,
-                                             actions)]
-        
-        command=ofp.OFPFC_MODIFY
-        waiters = {}
+            out_port = None
+            
+            if ether_dst in self.mac_to_port[dpid]:
+                out_port = self.mac_to_port[dpid][ether_dst]
 
-        block_exists = [tuple for tuple in self.block_comms if any(ether_dst == i for i in tuple) 
-                                                            and any(ether_src == i for i in tuple)]
+            actions = [ofp_parser.OFPActionOutput(out_port), ofp_parser.OFPActionOutput(20)]
+            inst = [ofp_parser.OFPInstructionActions(ofp.OFPIT_APPLY_ACTIONS,
+                                                actions)]
+            
+            command=ofp.OFPFC_MODIFY
+            waiters = {}
 
-        if (not block_exists):
-            if (inst and match and table_id):
-                self.add_flow(datapath=datapath, priority=priority, command=command, match=match, inst=inst, waiters=waiters, log_action="allow_packets", table_id=table_id)
+            block_exists = [tuple for tuple in self.block_comms if any(ether_dst == i for i in tuple) 
+                                                                and any(ether_src == i for i in tuple)]
+
+            if (not block_exists):
+                if (inst and match and table_id):
+                    self.add_flow(datapath=datapath, priority=priority, command=command, match=match, inst=inst, waiters=waiters, log_action="allow_packets", table_id=table_id)
+                else:
+                    raise Exception("allow_packets values are not set")
             else:
-                raise Exception("allow_packets values are not set")
-        else:
-            raise Exception("block exists, flow was not set")
+                raise Exception("block exists, flow was not set")
+        elif action == "drop":
+
+            # NOTE: All the below are for a very specific flow, need to generalize
+            match = ofp_parser.OFPMatch(eth_dst=ether_dst, eth_src=ether_src)
+
+            # We just add the mirroring of packet to the IDS and dropping the other
+            actions = [ofp_parser.OFPActionOutput(20)]
+            inst = [ofp_parser.OFPInstructionActions(ofp.OFPIT_APPLY_ACTIONS,
+                                                actions)]
+            
+            command=ofp.OFPFC_MODIFY
+            if (inst and match and table_id):
+                self.add_flow(datapath=datapath, priority=priority, command=command, match=match, inst=inst, waiters=waiters, log_action="drop_packets", table_id=table_id)
+            else:
+                raise Exception("drop_packets values are not set")
         
             
 
@@ -746,7 +740,7 @@ class ProcessBussController(ControllerBase):
         return Response(content_type='text/json', body=body)
         # return Response(content_type='text/plain', body="OK\n")
 
-    @route('processBus', urlModifyRule, methods=['POST'])
+    @route('processBus', urlModifyFlow, methods=['POST'])
     def modify(self, req, **kwargs):
 
         datapath = self.process_bus_app.datapath
@@ -763,14 +757,8 @@ class ProcessBussController(ControllerBase):
                 return Response(content_type='text/plain',status=400, body='Format should be: "eth_dst": "00:00:00:00:00:00", "eth_src": "00:00:00:00:00:00", "priority" : 0, "table_id" : 0, "action" : "<drop, add>"\n')
 
             eth_dst, eth_src, priority, table_id, action = valid_tuple
-            if action == "drop":
-                self.process_bus_app.modify_drop_packets(datapath, waiters, eth_dst, eth_src, priority, table_id)
-            elif action == "add":
-                self.process_bus_app.modify_allow_packets(datapath, waiters, eth_dst, eth_src, priority, table_id)
-
-            process_bus_app = self.process_bus_app
-            # meter_stats = process_bus_app.meter_stats
-            # body = json.dumps(meter_stats)
+           
+            self.process_bus_app.modify_flow(datapath, waiters, eth_dst, eth_src, priority, table_id, action)
 
             return Response(content_type='text/plain', body='OK\n')
 
