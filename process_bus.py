@@ -239,9 +239,9 @@ class process_bus(app_manager.RyuApp):
                 eth_dst=(self.block_comms[i][3])
             )
             # Empty actions will apply to drop the packet
-            actions = []
+            # actions = []
             # TODO: Shal we just forward it to the IDS (port 20) to create an alert anyways?
-            # actions = [ofp_parser.OFPActionOutput(20)]
+            actions = [parser.OFPActionGroup(group_id=50)]
 
             inst = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS,
                                                 actions)]
@@ -815,13 +815,7 @@ class ProcessBussController(ControllerBase):
     
     @route('processBus', urlGetDevicesMapping, methods=['GET'])
     def get_devices_mapping(self, req, **kwargs):
-        datapath = self.process_bus_app.datapath
-        waiters = {}
-
         dpid = kwargs['dpid']
-        
-        # print(self.process_bus_app.get_mac_to_port(dpid))
-        # print(type(self.process_bus_app.get_mac_to_port(dpid)).__name__)
 
         mapping  = self.process_bus_app.get_mac_to_port(dpid)
 
@@ -831,7 +825,7 @@ class ProcessBussController(ControllerBase):
         body = json.dumps(mapping)
 
         return Response(content_type='text/json', body=body)
-        return Response(content_type='text/json', body="OK\n")
+        # return Response(content_type='text/json', body="OK\n")
 
 
     # Below are the endpoints for retrieving the flows log.
