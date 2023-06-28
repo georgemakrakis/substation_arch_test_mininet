@@ -826,7 +826,7 @@ class ProcessBussController(ControllerBase):
         mapping  = self.process_bus_app.get_mac_to_port(dpid)
 
         if (type(mapping) == KeyError or type(mapping) == ValueError):
-            return Response(content_type='text/json', body=f"Incorrect Datpath ID: {dpid}\n")
+            return Response(content_type='text/json', body=f"Incorrect Datpath ID received: {dpid}\n")
 
         body = json.dumps(mapping)
 
