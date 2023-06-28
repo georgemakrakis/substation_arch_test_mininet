@@ -32,6 +32,8 @@ urlGetPacketInFlows = '/processBus/packetInFlows'
 urlGetMeterFlows = '/processBus/meterFlows'
 urlGetDropFlows = '/processBus/dropFlows'
 
+urlGetDevicesMapping = '/processBus/devicesMapping/{dpid}'
+
 OFP_REPLY_TIMER = 1.0  # sec
 
 class process_bus(app_manager.RyuApp):
@@ -317,6 +319,14 @@ class process_bus(app_manager.RyuApp):
         except Exception as ex:
             print(f"set_meter exception: {ex}")
         
+    def get_mac_to_port(self, dpid):
+        try:
+            dpid_int = int(dpid)
+            return self.mac_to_port[dpid_int]
+        except ValueError as er:
+            return er
+        except KeyError as er:
+            return er
 
 
     @set_ev_cls(ofp_event.EventOFPPacketIn, MAIN_DISPATCHER)
@@ -802,6 +812,26 @@ class ProcessBussController(ControllerBase):
             # TODO: Shall we also include an informational message?
             return Response(content_type='text/plain',status=400)
         
+    
+    @route('processBus', urlGetDevicesMapping, methods=['GET'])
+    def get_devices_mapping(self, req, **kwargs):
+        datapath = self.process_bus_app.datapath
+        waiters = {}
+
+        dpid = kwargs['dpid']
+        
+        # print(self.process_bus_app.get_mac_to_port(dpid))
+        # print(type(self.process_bus_app.get_mac_to_port(dpid)).__name__)
+
+        mapping  = self.process_bus_app.get_mac_to_port(dpid)
+
+        if (type(mapping) == KeyError or type(mapping) == ValueError):
+            return Response(content_type='text/json', body=f"Incorrect Datpath ID: {dpid}\n")
+
+        body = json.dumps(mapping)
+
+        return Response(content_type='text/json', body=body)
+        return Response(content_type='text/json', body="OK\n")
 
 
     # Below are the endpoints for retrieving the flows log.
