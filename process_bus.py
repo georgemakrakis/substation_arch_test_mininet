@@ -31,8 +31,8 @@ urlGetPacketInFlows = '/processBus/packetInFlows'
 # TODO: Maybe the below not needed, can we use the urlMeter with GET?
 urlGetMeterFlows = '/processBus/meterFlows'
 urlGetDropFlows = '/processBus/dropFlows'
-
 urlGetDevicesMapping = '/processBus/devicesMapping/{dpid}'
+urlModifyPort =  '/processBus/modifyPort/{port}/{mac}/{state}'
 
 OFP_REPLY_TIMER = 1.0  # sec
 
@@ -641,6 +641,34 @@ class process_bus(app_manager.RyuApp):
             else:
                 raise Exception("drop_packets values are not set")
         
+    def send_port_mod(self, datapath, port, mac, state):
+        ofp = datapath.ofproto
+        ofp_parser = datapath.ofproto_parser
+
+        port_no = None
+
+        try:
+            port_no = int(port)
+        except ValueError as er:
+            return er
+
+        hw_addr = mac
+
+        # Bitmap of configuration flags to be changed
+        config = 0
+        if state == "down":
+            config = 1
+        
+        mask = (ofp.OFPPC_PORT_DOWN)
+        
+        # advertise = (ofp.OFPPF_10MB_HD | ofp.OFPPF_100MB_FD |
+        #             ofp.OFPPF_1GB_FD | ofp.OFPPF_COPPER |
+        #             ofp.OFPPF_AUTONEG | ofp.OFPPF_PAUSE |
+        #             ofp.OFPPF_PAUSE_ASYM)
+        req = ofp_parser.OFPPortMod(datapath=datapath, port_no=port_no, hw_addr=hw_addr, config=config,
+                                    mask=mask)
+                                    # mask=mask, advertise=advertise)
+        datapath.send_msg(req)
             
 
 class ProcessBussController(ControllerBase):
@@ -838,6 +866,18 @@ class ProcessBussController(ControllerBase):
         return Response(content_type='text/json', body=body)
         # return Response(content_type='text/json', body="OK\n")
 
+    @route('processBus', urlModifyPort, methods=['POST'])
+    def modify_port(self, req, **kwargs):
+        port = kwargs['port']
+        state = kwargs['state']
+        mac = kwargs['mac']
+
+        datapath = self.process_bus_app.datapath
+
+        # self.process_bus_app.send_port_mod(datapath, port)
+        self.process_bus_app.send_port_mod(datapath, port, mac, state)
+
+        return Response(content_type='text/json', body="OK\n")
 
     # Below are the endpoints for retrieving the flows log.
 
