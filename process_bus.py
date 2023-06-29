@@ -641,23 +641,29 @@ class process_bus(app_manager.RyuApp):
             else:
                 raise Exception("drop_packets values are not set")
         
-    def send_port_mod(self, datapath, port, mac, state):
+    def send_port_mod(self, datapath, waiters, port, mac, state):
         ofp = datapath.ofproto
         ofp_parser = datapath.ofproto_parser
 
         port_no = None
+        hw_addr = mac
 
         try:
             port_no = int(port)
         except ValueError as er:
             return er
-
-        hw_addr = mac
+        
+        if port_no not in range (1,20):
+            raise Exception("Invalid port number has been defined.")
 
         # Bitmap of configuration flags to be changed
         config = 0
         if state == "down":
             config = 1
+        elif state == "up":
+            config = 0
+        else:
+            raise Exception("No port up or down has been defined.")
         
         mask = (ofp.OFPPC_PORT_DOWN)
         
@@ -668,7 +674,21 @@ class process_bus(app_manager.RyuApp):
         req = ofp_parser.OFPPortMod(datapath=datapath, port_no=port_no, hw_addr=hw_addr, config=config,
                                     mask=mask)
                                     # mask=mask, advertise=advertise)
+
+        waiters_per_datapath = waiters.setdefault(datapath.id, {})
+        event = hub.Event()
+        msgs = []
+        waiters_per_datapath[req.xid] = (event, msgs)
+
         datapath.send_msg(req)
+
+        try:
+            event.wait(timeout=OFP_REPLY_TIMER)
+        except hub.Timeout:
+            del waiters_per_datapath[req.xid]
+            self.flow_log("msg_timeout_send_port_mod", req.to_jsondict())
+        except Exception as ex:
+            print(f"send_port_mod exception: {ex}")
             
 
 class ProcessBussController(ControllerBase):
@@ -873,9 +893,10 @@ class ProcessBussController(ControllerBase):
         mac = kwargs['mac']
 
         datapath = self.process_bus_app.datapath
+        waiters = {}
 
         # self.process_bus_app.send_port_mod(datapath, port)
-        self.process_bus_app.send_port_mod(datapath, port, mac, state)
+        self.process_bus_app.send_port_mod(datapath, waiters, port, mac, state)
 
         return Response(content_type='text/json', body="OK\n")
 
