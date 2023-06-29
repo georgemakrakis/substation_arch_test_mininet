@@ -447,7 +447,7 @@ class process_bus(app_manager.RyuApp):
         with open(f"{path}/json_mod_{origin}_{time.strftime('%Y%m%d-%H%M%S')}.json", "w") as json_file:
             json_file.write(json_object)
 
-    def set_metering(self, datapath, waiters, ether_dst, ether_src, priority, table_id, action, meter_id, rate, burst_size):
+    def set_metering(self, datapath, waiters, ether_dst, ether_src, priority, table_id, action, meter_id, rate, burst_size, flag):
         ofp_parser = datapath.ofproto_parser
         ofp = datapath.ofproto
         dpid = datapath.id
@@ -460,6 +460,14 @@ class process_bus(app_manager.RyuApp):
 
         if ether_src in self.mac_to_port[dpid]:
             in_port = self.mac_to_port[dpid][ether_src]
+
+        flags = None
+        if flag == "kbps":
+            flags = ofp.OFPMF_KBPS
+        elif flag == "pktps":
+            flags= ofp.OFPMF_PKTPS
+        else:
+            raise Exception("set_metering values are not set")
 
 
         match = ofp_parser.OFPMatch(in_port=in_port, eth_dst=ether_dst, eth_src=ether_src)
@@ -474,7 +482,7 @@ class process_bus(app_manager.RyuApp):
             bands.append(dropband)
             meter_request = ofp_parser.OFPMeterMod(datapath=datapath,
                                             command=ofp.OFPMC_ADD,
-                                            flags=ofp.OFPMF_PKTPS,
+                                            flags=flags,
                                             meter_id=meter_id,
                                             bands=bands)
             datapath.send_msg(meter_request)
@@ -701,6 +709,10 @@ class ProcessBussController(ControllerBase):
                 # table_id = value
                 tuple_ret = tuple_ret + (value,)
 
+            if (key == "flag"):
+                # table_id = value
+                tuple_ret = tuple_ret + (value,)
+
         # print(f"AAAAAA {tuple_ret}")
         return tuple_ret
 
@@ -749,18 +761,17 @@ class ProcessBussController(ControllerBase):
 
         if (req.json):
             valid_tuple = self.validate_POST(req.json)
-            print(f"LEEEEENNNN: {len(valid_tuple)}")
             # if (len(valid_tuple) != 6 and len(valid_tuple) != 8):
             #     return Response(content_type='text/plain',status=400, body='Format should be: "eth_dst": "00:00:00:00:00:00", "eth_src": "00:00:00:00:00:00", "priority" : 0, "table_id" : 0, "action" : "delete" \n OR .... "action" : "add",  "meter_id" : 1, "rate" : 0, "burst_size" : 0\n')
 
-            if (len(valid_tuple) == 8) :
-                eth_dst, eth_src, priority, table_id, action, meter_id, rate, burst_size = valid_tuple
+            if (len(valid_tuple) == 9) :
+                eth_dst, eth_src, priority, table_id, action, meter_id, rate, burst_size , flag = valid_tuple
             elif (len(valid_tuple) == 6) :
                 eth_dst, eth_src, priority, table_id, action, meter_id = valid_tuple
             else:
-                return Response(content_type='text/plain',status=400, body='Format should be: "eth_dst": "00:00:00:00:00:00", "eth_src": "00:00:00:00:00:00", "priority" : 0, "table_id" : 0, "action" : "delete" \n OR .... "action" : "add",  "meter_id" : 1, "rate" : 0, "burst_size" : 0\n')
+                return Response(content_type='text/plain',status=400, body='Format should be: "eth_dst": "00:00:00:00:00:00", "eth_src": "00:00:00:00:00:00", "priority" : 0, "table_id" : 0, "action" : "delete" \n OR .... "action" : "add",  "meter_id" : 1, "rate" : 0, "burst_size" : 0, "flag" : "<pktps, kbps>"\n')
             
-            self.process_bus_app.set_metering(datapath, waiters, eth_dst, eth_src, priority, table_id, action, meter_id, rate, burst_size)
+            self.process_bus_app.set_metering(datapath, waiters, eth_dst, eth_src, priority, table_id, action, meter_id, rate, burst_size, flag)
 
             process_bus_app = self.process_bus_app
             # meter_stats = process_bus_app.meter_stats
