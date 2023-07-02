@@ -11,6 +11,7 @@ from ryu.controller.handler import set_ev_cls
 from ryu.ofproto import ofproto_v1_3  # Specify the Openflow version to be used.
 
 from ryu.lib import hub
+from ryu import cfg
 
 from ryu.lib.packet import packet
 from ryu.lib.packet import ethernet
@@ -46,11 +47,19 @@ class process_bus(app_manager.RyuApp):
         super(process_bus, self).__init__(*args, **kwargs)
         self.mac_to_port = {} # The mac address table is empty initially.
 
+        CONF = cfg.CONF
+        CONF.register_opts([
+            cfg.IntOpt('monitor', default=1, help = ('Enable monitor')),])
+        
+        print('monitor = {}'.format(CONF.monitor))
+
         wsgi = kwargs['wsgi']
         self.datapath = None
         self.flows_stats = []
         wsgi.register(ProcessBussController,
                       {processBus_app_instance_name: self})
+        if (CONF.monitor == 1):
+            self.monitor_thread = hub.spawn(self._monitor)
 
     @set_ev_cls(ofp_event.EventOFPSwitchFeatures, CONFIG_DISPATCHER)
     def switch_features_handler(self, ev):
@@ -561,7 +570,16 @@ class process_bus(app_manager.RyuApp):
         #     self.flow_log("msg_timeout_set_meter", ICMP_port1_mod.to_jsondict())
         # except Exception as ex:
         #     print(f"set_meter exception: {ex}")
-    
+
+    def _monitor(self):
+        while True:
+            # NOTE: Just doing it for port 10 (RTAC) for now
+            if not (self.datapath == None):
+                waiters ={}
+                # Provide 0 as port to retrieve everything
+                self.send_flow_stats_request(self.datapath, 0, waiters, 1)
+                self.send_meter_stats_request(self.datapath,waiters)
+            hub.sleep(5)
 
     def send_flow_stats_request(self, datapath, in_port, waiters, table_id):
         ofp = datapath.ofproto
@@ -569,24 +587,25 @@ class process_bus(app_manager.RyuApp):
 
         cookie = cookie_mask = 0
 
-        match = table_id_int = None
-        
-        if in_port:
-            try:
-                in_port_int = int(in_port)
-                match = ofp_parser.OFPMatch()
+        match = ofp_parser.OFPMatch() 
+        table_id_int = None
 
-                table_id_int = int(table_id)
-                
-                if in_port_int != 0:
-                    # match = ofp_parser.OFPMatch(in_port=in_port_int)
-                    match = ofp_parser.OFPMatch(in_port=1)
-                else:
-                    print("Port 0 requested")
-                    return -1
-            except ValueError as er:
-                print("The provided in_port or table_id is not a number")
-                return -1
+       
+        try:
+            in_port_int = int(in_port)
+            match = ofp_parser.OFPMatch()
+
+            table_id_int = int(table_id)
+            
+            if in_port_int != 0:
+                # match = ofp_parser.OFPMatch(in_port=in_port_int)
+                match = ofp_parser.OFPMatch(in_port=in_port_int)
+            else:
+                print(f"Port 0 for table {table_id_int} requested")
+                match = ofp_parser.OFPMatch()
+        except ValueError as er:
+            print("The provided in_port or table_id is not a number")
+            return -1
         
         # req = ofp_parser.OFPFlowStatsRequest(datapath, table_id_int,
         req = ofp_parser.OFPFlowStatsRequest(datapath, 0,
