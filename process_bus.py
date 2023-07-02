@@ -379,13 +379,27 @@ class process_bus(app_manager.RyuApp):
 
         # GOOSE Multicast list allowed comms based on multicast address and switch port that can reach
         goose_list = {
-            ("01:0c:cd:01:00:01", 11)
+            "01:0c:cd:01:00:01" : [10, 5]
+            #("01:0c:cd:01:00:01", 16)
         }
+        #in_goose_list = [tuple for tuple in goose_list if any(dst == i for i in tuple)]
+        
+        in_goose_list = []
 
-        if (dst == "01:0c:cd:01:00:01"):
+        try:
+            in_goose_list = goose_list[dst]
+            # print(f"GOOSE packet will go to port: {in_goose_list}")
+        except KeyError as err:
+            print(f"Key Error for key {err} in goose_list")
+            # TODO: Return some sort of error and/or log this action
+
+        if in_goose_list:
             match = parser.OFPMatch(eth_dst=dst)
-            # TODO: Use the above goose_list here.
-            actions = [parser.OFPActionOutput(11), parser.OFPActionGroup(group_id=50)]
+            actions = [parser.OFPActionGroup(group_id=50)]
+
+            for port in in_goose_list:
+                actions.append(parser.OFPActionOutput(port))
+
             inst = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS,
                                              actions)]
             
