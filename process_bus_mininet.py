@@ -56,20 +56,22 @@ class process_bus( Topo ):
         switch1 = self.addSwitch( "s1", protocols=["OpenFlow13"] )
         
         # Assign IPs and MACs, add hosts and links
-        for i in range(len(self.TMUs)):
-             # +2 to start from .2 address
-            j = i + 2
 
-            if j > 9:
-                j_str = f"{j}"
-            else:
-                j_str = f"0{j}"
+        # NOTE: We remove the TMUs completely since they become point-to-point connections
+        # for i in range(len(self.TMUs)):
+        #      # +2 to start from .2 address
+        #     j = i + 2
+
+        #     if j > 9:
+        #         j_str = f"{j}"
+        #     else:
+        #         j_str = f"0{j}"
             
-            self.TMUs[TMUs_keys[i]].append(f"192.168.1.{j}/24")
-            self.TMUs[TMUs_keys[i]].append(f"00:00:00:00:00:{j_str}")
+        #     self.TMUs[TMUs_keys[i]].append(f"192.168.1.{j}/24")
+        #     self.TMUs[TMUs_keys[i]].append(f"00:00:00:00:00:{j_str}")
 
-            TMU = self.addHost( TMUs_keys[i], ip=self.TMUs[TMUs_keys[i]][0], mac=self.TMUs[TMUs_keys[i]][1] )
-            self.addLink( TMU, switch1 )
+        #     TMU = self.addHost( TMUs_keys[i], ip=self.TMUs[TMUs_keys[i]][0], mac=self.TMUs[TMUs_keys[i]][1] )
+        #     self.addLink( TMU, switch1 )
         
         for i in range(len(self.IEDs)):
             # +5 casue we did already setup 5 TMUs in this subnet
