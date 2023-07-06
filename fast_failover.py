@@ -40,7 +40,7 @@ class fast_failover_switch(app_manager.RyuApp):
 
         # Add the group for fast failover
         actions1 = [parser.OFPActionOutput(3)]
-        actions2 = [parser.OFPActionOutput(4)]
+        actions2 = [parser.OFPActionOutput(20)]
         # actions2 = [parser.OFPActionOutput(ofproto.OFPP_CONTROLLER,
         #                                   ofproto.OFPCML_NO_BUFFER)
         #                                   parser.OFPActionOutput(4)]
@@ -52,7 +52,7 @@ class fast_failover_switch(app_manager.RyuApp):
                                     actions=actions1),
                     # parser.OFPBucket(weight, 20, watch_group,
                     #                 actions2)
-                    parser.OFPBucket(watch_port=4, watch_group=watch_group,
+                    parser.OFPBucket(watch_port=20, watch_group=watch_group,
                                     actions=actions2)
                                     ]
 
@@ -72,15 +72,20 @@ class fast_failover_switch(app_manager.RyuApp):
         actions = [ parser.OFPActionGroup(group_id=1)]
         self.add_flow(datapath, 10, match, actions)
 
-        match = parser.OFPMatch(in_port=3)
-        # actions = [ parser.OFPActionGroup(group_id=1)]
-        actions = [parser.OFPActionOutput(2)]
-        self.add_flow(datapath, 9, match, actions)
+        if datapath.id == 2:
+            match = parser.OFPMatch(in_port=20)
+            actions = [ parser.OFPActionGroup(group_id=1)]
+            self.add_flow(datapath, 9, match, actions)
 
-        match = parser.OFPMatch(in_port=4)
-        # actions = [ parser.OFPActionGroup(group_id=1)]
-        actions = [parser.OFPActionOutput(2)]
-        self.add_flow(datapath, 8, match, actions)
+        # match = parser.OFPMatch(in_port=3)
+        # # actions = [ parser.OFPActionGroup(group_id=1)]
+        # actions = [parser.OFPActionOutput(2)]
+        # self.add_flow(datapath, 9, match, actions)
+
+        # match = parser.OFPMatch(in_port=4)
+        # # actions = [ parser.OFPActionGroup(group_id=1)]
+        # actions = [parser.OFPActionOutput(2)]
+        # self.add_flow(datapath, 8, match, actions)
 
         # match = parser.OFPMatch(in_port=4)
         # actions = [ parser.OFPActionGroup(group_id=1)]
