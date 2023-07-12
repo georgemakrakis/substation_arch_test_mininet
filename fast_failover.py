@@ -75,7 +75,7 @@ class fast_failover_switch(app_manager.RyuApp):
         if datapath.id == 2:
             match = parser.OFPMatch(in_port=20)
             actions = [ parser.OFPActionGroup(group_id=1)]
-            self.add_flow(datapath, 9, match, actions)
+            self.add_flow(datapath, 11, match, actions)
 
         # match = parser.OFPMatch(in_port=3)
         # # actions = [ parser.OFPActionGroup(group_id=1)]

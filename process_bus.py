@@ -25,12 +25,14 @@ processBus_app_instance_name = 'processBus_app'
 urlStatsAll = '/processBus/getStats/{tableId}/{inPort}'
 urlMeter = '/processBus/meter'
 urlMeterStatsAll = '/processBus/getMeterStats'
+urlGroupStatsAll = '/processBus/getGroupStats'
 urlModifyFlow = '/processBus/modifyFlow'
 
 urlGetDefaultFlows = '/processBus/defaultFlows'
 urlGetPacketInFlows = '/processBus/packetInFlows'
 # TODO: Maybe the below not needed, can we use the urlMeter with GET?
 urlGetMeterFlows = '/processBus/meterFlows'
+urlGetIDSGroup = '/processBus/GetIDSGroup'
 urlGetDropFlows = '/processBus/dropFlows'
 urlGetDevicesMapping = '/processBus/devicesMapping/{dpid}'
 urlModifyPort =  '/processBus/modifyPort/{port}/{mac}/{state}'
@@ -56,6 +58,7 @@ class process_bus(app_manager.RyuApp):
         wsgi = kwargs['wsgi']
         self.datapath = None
         self.flows_stats = []
+        self.group_stats = []
         wsgi.register(ProcessBussController,
                       {processBus_app_instance_name: self})
         if (CONF.monitor == 1):
@@ -98,7 +101,6 @@ class process_bus(app_manager.RyuApp):
         self.add_flow(datapath=datapath, priority=0, command=command, match=match, inst=inst, waiters=waiters, log_action="controller_handling", table_id=0)
 
         # Group Table 50 for IDS Forwarding
-        # Receiver port2, forward it to port1 and Port3
 
         actions1 = [parser.OFPActionOutput(20)]
         buckets = [parser.OFPBucket(actions=actions1)]
@@ -106,6 +108,7 @@ class process_bus(app_manager.RyuApp):
                                  type_=ofproto.OFPGT_ALL, group_id=50, 
                                  buckets=buckets)
         datapath.send_msg(req)
+        self.flow_log(f"IDS_group_flows", req.to_jsondict())
 
         # Essentially these are ACL entries that block specific communications.
         # TODO: Can we parse each one of those from a CSV or JSON file?
@@ -468,6 +471,21 @@ class process_bus(app_manager.RyuApp):
 
         self.flows_stats = flows
 
+    @set_ev_cls(ofp_event.EventOFPGroupStatsReply, MAIN_DISPATCHER)
+    def group_stats_reply_handler(self, ev):
+        groups = []
+        for stat in ev.msg.body:
+            groups.append('length=%d group_id=%d '
+                        'ref_count=%d packet_count=%d byte_count=%d '
+                        'duration_sec=%d duration_nsec=%d' %
+                        (stat.length, stat.group_id,
+                        stat.ref_count, stat.packet_count,
+                        stat.byte_count, stat.duration_sec,
+                        stat.duration_nsec))
+        self.logger.debug('GroupStats: %s', groups)
+
+        self.group_stats = groups
+
     @set_ev_cls(ofp_event.EventOFPMeterStatsReply, MAIN_DISPATCHER)
     def meter_stats_reply_handler(self, ev):
         meters = []
@@ -650,6 +668,29 @@ class process_bus(app_manager.RyuApp):
             self.flow_log("msg_timeout_send_meter_stats_request", req.to_jsondict())
         except Exception as ex:
             print(f"send_meter_stats_request exception: {ex}")
+
+    def send_group_stats_request(self, datapath, waiters):
+        ofp = datapath.ofproto
+        ofp_parser = datapath.ofproto_parser
+
+        # req = ofp_parser.OFPGroupStatsRequest(datapath, 0, 50)
+        req = ofp_parser.OFPGroupStatsRequest(datapath, 0, ofp.OFPG_ALL)
+
+        waiters_per_datapath = waiters.setdefault(datapath.id, {})
+        event = hub.Event()
+        msgs = []
+        waiters_per_datapath[req.xid] = (event, msgs)
+
+        datapath.send_msg(req)
+        
+        try:
+            
+            event.wait(timeout=OFP_REPLY_TIMER)
+        except hub.Timeout:
+            del waiters_per_datapath[req.xid]
+            self.flow_log("msg_timeout_send_group_stats_request", req.to_jsondict())
+        except Exception as ex:
+            print(f"send_group_stats_request exception: {ex}")
 
     def modify_flow(self, datapath, waiters, ether_dst, ether_src, priority, table_id, action):
         ofp_parser = datapath.ofproto_parser
@@ -903,6 +944,20 @@ class ProcessBussController(ControllerBase):
         return Response(content_type='text/json', body=body)
         # return Response(content_type='text/plain', body="OK\n")
 
+    @route('processBus', urlGroupStatsAll, methods=['GET'])
+    def get_group_stats(self, req, **kwargs):
+        datapath = self.process_bus_app.datapath
+        waiters = {}
+        
+        self.process_bus_app.send_group_stats_request(datapath, waiters)
+
+        process_bus_app = self.process_bus_app
+        group_stats = process_bus_app.group_stats
+        body = json.dumps(group_stats)
+
+        return Response(content_type='text/json', body=body)
+        # return Response(content_type='text/plain', body="OK\n")
+
     @route('processBus', urlModifyFlow, methods=['POST'])
     def modify(self, req, **kwargs):
 
@@ -980,6 +1035,14 @@ class ProcessBussController(ControllerBase):
     def get_meter_flows(self, req, **kwargs):
 
         full_zip_in_memory = self.generate_zip("set_meter")
+        
+        response = Response(full_zip_in_memory, content_type='application/force-download')
+        return response
+    
+    @route('processBus', urlGetIDSGroup, methods=['GET'])
+    def get_IDS_group(self, req, **kwargs):
+
+        full_zip_in_memory = self.generate_zip("IDS_group_flows")
         
         response = Response(full_zip_in_memory, content_type='application/force-download')
         return response
