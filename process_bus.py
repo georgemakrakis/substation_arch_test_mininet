@@ -51,9 +51,11 @@ class process_bus(app_manager.RyuApp):
 
         CONF = cfg.CONF
         CONF.register_opts([
-            cfg.IntOpt('monitor', default=1, help = ('Enable monitor')),])
+            cfg.IntOpt('monitor', default=1, help = ('Enable monitor')),
+            cfg.IntOpt('period', default=10, help = ('Period of monitoring'))])
         
         print('monitor = {}'.format(CONF.monitor))
+        print('period = {}'.format(CONF.period))
 
         wsgi = kwargs['wsgi']
         self.datapath = None
@@ -61,8 +63,11 @@ class process_bus(app_manager.RyuApp):
         self.group_stats = []
         wsgi.register(ProcessBussController,
                       {processBus_app_instance_name: self})
-        if (CONF.monitor == 1):
-            self.monitor_thread = hub.spawn(self._monitor)
+        if (CONF.monitor and CONF.period and CONF.monitor == 1):
+            self.monitor_thread = hub.spawn(self._monitor, CONF.period)
+        elif (CONF.monitor and CONF.monitor == 1):
+            # Default if period is not defined
+            self.monitor_thread = hub.spawn(self._monitor, 10)
 
     @set_ev_cls(ofp_event.EventOFPSwitchFeatures, CONFIG_DISPATCHER)
     def switch_features_handler(self, ev):
@@ -542,7 +547,6 @@ class process_bus(app_manager.RyuApp):
 
         if action == "add":
             # Setting the meter here
-            # TODO: The following are arbitrary, they need to be setted with variables
             bands = []
             dropband = ofp_parser.OFPMeterBandDrop(rate=rate, burst_size=burst_size)
             bands.append(dropband)
@@ -589,7 +593,7 @@ class process_bus(app_manager.RyuApp):
         # except Exception as ex:
         #     print(f"set_meter exception: {ex}")
 
-    def _monitor(self):
+    def _monitor(self, period):
         while True:
             # NOTE: Just doing it for port 10 (RTAC) for now
             if not (self.datapath == None):
@@ -597,7 +601,7 @@ class process_bus(app_manager.RyuApp):
                 # Provide 0 as port to retrieve everything
                 self.send_flow_stats_request(self.datapath, 0, waiters, 1)
                 self.send_meter_stats_request(self.datapath,waiters)
-            hub.sleep(5)
+            hub.sleep(period)
 
     def send_flow_stats_request(self, datapath, in_port, waiters, table_id):
         ofp = datapath.ofproto
