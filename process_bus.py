@@ -64,10 +64,8 @@ class process_bus(app_manager.RyuApp):
         wsgi.register(ProcessBussController,
                       {processBus_app_instance_name: self})
         if (CONF.monitor and CONF.period and CONF.monitor == 1):
+            print("HERE!!!!")
             self.monitor_thread = hub.spawn(self._monitor, CONF.period)
-        elif (CONF.monitor and CONF.monitor == 1):
-            # Default if period is not defined
-            self.monitor_thread = hub.spawn(self._monitor, 10)
 
     @set_ev_cls(ofp_event.EventOFPSwitchFeatures, CONFIG_DISPATCHER)
     def switch_features_handler(self, ev):
