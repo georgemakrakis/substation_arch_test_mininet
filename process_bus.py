@@ -1,6 +1,6 @@
 import json, re, time, os
 from io import BytesIO
-import zipfile
+import zipfile, array
 
 from ryu.base import app_manager # This is the main entry point for the controller application.
 
@@ -17,9 +17,13 @@ from ryu.lib.packet import packet
 from ryu.lib.packet import ethernet
 from ryu.lib.packet import ether_types
 from ryu.lib.packet import in_proto
+from ryu.lib.packet import ipv4
+from ryu.lib.packet import icmp
 
 from ryu.app.wsgi import ControllerBase, WSGIApplication, route
 from webob import Response
+
+from ryu.lib import snortlib
 
 processBus_app_instance_name = 'processBus_app'
 urlStatsAll = '/processBus/getStats/{tableId}/{inPort}'
@@ -41,7 +45,7 @@ OFP_REPLY_TIMER = 1.0  # sec
 
 class process_bus(app_manager.RyuApp):
     OFP_VERSIONS = [ofproto_v1_3.OFP_VERSION]
-    _CONTEXTS = {'wsgi': WSGIApplication}
+    _CONTEXTS = {'wsgi': WSGIApplication, 'snortlib': snortlib.SnortLib}
 
     block_comms = {}
 
@@ -51,8 +55,10 @@ class process_bus(app_manager.RyuApp):
 
         CONF = cfg.CONF
         CONF.register_opts([
-            cfg.IntOpt('monitor', default=1, help = ('Enable monitor')),
-            cfg.IntOpt('period', default=10, help = ('Period of monitoring'))])
+            cfg.IntOpt('monitor', default=0, help = ('Enable monitor')),
+            cfg.IntOpt('period', default=10, help = ('Period of monitoring')),
+            cfg.IntOpt('snort', default=0, help = ('Enabling snort communication'))
+        ])
         
         print('monitor = {}'.format(CONF.monitor))
         print('period = {}'.format(CONF.period))
@@ -64,8 +70,51 @@ class process_bus(app_manager.RyuApp):
         wsgi.register(ProcessBussController,
                       {processBus_app_instance_name: self})
         if (CONF.monitor and CONF.period and CONF.monitor == 1):
-            print("HERE!!!!")
             self.monitor_thread = hub.spawn(self._monitor, CONF.period)
+
+        if (CONF.snort and CONF.snort == 1):
+
+            self.snort = kwargs['snortlib']
+            # This is not needed yet but we can add it later as the IDS Port 20 for the below flow rules
+            # self.snort_port = 3
+
+            socket_config = {'unixsock': False}
+
+            self.snort.set_config(socket_config)
+            self.snort.start_socket_server()
+
+    def packet_print(self, pkt):
+
+        # pkt = packet.Packet(msg.data)
+        # eth = pkt.get_protocols(ethernet.ethernet)[0]
+
+        pkt = packet.Packet(array.array('B', pkt))
+
+        eth = pkt.get_protocol(ethernet.ethernet)
+        _ipv4 = pkt.get_protocol(ipv4.ipv4)
+        _icmp = pkt.get_protocol(icmp.icmp)
+
+        if _icmp:
+            self.logger.info("%r", _icmp)
+
+        if _ipv4:
+            self.logger.info("%r", _ipv4)
+
+        if eth:
+            self.logger.info("%r", eth)
+
+        # for p in pkt.protocols:
+        #     if hasattr(p, 'protocol_name') is False:
+        #         break
+        #     print('p: %s' % p.protocol_name)
+
+    @set_ev_cls(snortlib.EventAlert, MAIN_DISPATCHER)
+    def _dump_alert(self, ev):
+        msg = ev.msg
+
+        print(f"alertmsg: {msg.alertmsg}")
+
+        self.packet_print(msg.pkt)
 
     @set_ev_cls(ofp_event.EventOFPSwitchFeatures, CONFIG_DISPATCHER)
     def switch_features_handler(self, ev):
@@ -391,6 +440,9 @@ class process_bus(app_manager.RyuApp):
 
         block_exists = [tuple for tuple in self.block_comms if any(dst == i for i in tuple) 
                                                             and any(src == i for i in tuple)]
+
+        if eth.ethertype == ether_types.ETH_TYPE_8021Q:
+            self.logger.info("Possibly with protocol GOOSE")
 
         # GOOSE Multicast list allowed comms based on multicast address and switch port that can reach
         goose_list = {
