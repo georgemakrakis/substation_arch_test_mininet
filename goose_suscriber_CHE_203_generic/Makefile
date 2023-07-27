@@ -1,7 +1,7 @@
 LIBIEC_HOME=/home/mininet/libiec61850/
 
-PROJECT_BINARY_NAME = goose_CHE_203_generic
-PROJECT_SOURCES = goose_CHE_203_generic.c
+PROJECT_BINARY_NAME = goose_subscriber_CHE_203_generic
+PROJECT_SOURCES = goose_subscriber_CHE_203_generic.c
 
 include $(LIBIEC_HOME)/make/target_system.mk
 include $(LIBIEC_HOME)/make/stack_includes.mk
@@ -12,6 +12,5 @@ include $(LIBIEC_HOME)/make/common_targets.mk
 
 $(PROJECT_BINARY_NAME):	$(PROJECT_SOURCES) $(LIB_NAME)
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $(PROJECT_BINARY_NAME) $(PROJECT_SOURCES) $(INCLUDES) $(LIB_NAME) $(LDLIBS) -lm
-
 clean:
 	rm -f $(PROJECT_BINARY_NAME)

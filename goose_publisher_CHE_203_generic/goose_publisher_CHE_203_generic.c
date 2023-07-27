@@ -62,40 +62,78 @@ main(int argc, char **argv)
         }
     }
 
+    LinkedList dataSetValues = LinkedList_create();
+    CommParameters gooseCommParameters;
+
     if (strcmp(device_name, "RTAC") == 0) 
     {
-        printf("RTAC config for the dataSetValues\n");
+        printf("GOOSE RTAC configuration initiated...\n");
+        // TODO: 
         // Should have the integer for the True/False or Open/Close
         // and another interger for Trip/NoTrip
         // gooseCommParameters should be here as well.
+        // There should be multiple ones based on the comm paths of
+        // the devices
+
+        // Breaker status (for device No ?) 0/1 or Open/Close.
+        // LinkedList_add(dataSetValues, MmsValue_newIntegerFromInt32(1));
+        LinkedList_add(dataSetValues, MmsValue_newBoolean(true));
+
+        // Trip command (for device No ?) Trip/NoTrip.
+        // LinkedList_add(dataSetValues, MmsValue_newIntegerFromInt32(0));
+        // NOTE: Disable for now might be enabled later.
+        // LinkedList_add(dataSetValues, MmsValue_newBoolean(false));
+
+        gooseCommParameters.appId = 1001;
+        gooseCommParameters.dstAddress[0] = 0x01;
+        gooseCommParameters.dstAddress[1] = 0x0c;
+        gooseCommParameters.dstAddress[2] = 0xcd;
+        gooseCommParameters.dstAddress[3] = 0x01;
+        gooseCommParameters.dstAddress[4] = 0x00;
+        gooseCommParameters.dstAddress[5] = 0x01;
+        gooseCommParameters.vlanId = 0;
+        gooseCommParameters.vlanPriority = 4;
+
     } 
     else if (strcmp(device_name, "651R_2") == 0)
     {
-        printf("651R_2 config for the dataSetValues\n");
+        printf("GOOSE 651R_2 configuration initiated...\n");
+
+        // Breaker status (for device No ?) 0/1 or Open/Close.
+        LinkedList_add(dataSetValues, MmsValue_newIntegerFromInt32(0));
+        // LinkedList_add(dataSetValues, MmsValue_newBoolean(true));
+
+        // Trip command (for device No ?) Trip/NoTrip.
+        // LinkedList_add(dataSetValues, MmsValue_newIntegerFromInt32(0));
+         // NOTE: Disable for now might be enabled later.
+        // LinkedList_add(dataSetValues, MmsValue_newBoolean(false));
+
+        gooseCommParameters.appId = 1002;
+        gooseCommParameters.dstAddress[0] = 0x01;
+        gooseCommParameters.dstAddress[1] = 0x0c;
+        gooseCommParameters.dstAddress[2] = 0xcd;
+        gooseCommParameters.dstAddress[3] = 0x01;
+        gooseCommParameters.dstAddress[4] = 0x00;
+        gooseCommParameters.dstAddress[5] = 0x02;
+        gooseCommParameters.vlanId = 0;
+        gooseCommParameters.vlanPriority = 4;
+
+    }
+    else if (strcmp(device_name, "787_2") == 0)
+    {
+        printf("GOOSE 787_2 configuration initiated...\n");
+    }
+    else if (strcmp(device_name, "451_2") == 0)
+    {
+        printf("GOOSE 451_2 configuration initiated...\n");
     }
     else
     {
-        printf("Default config for the dataSetValues\n");
+        printf("No device supported, exiting...\n");
+        return 1;
     }
 
     printf("Using interface %s\n", interface);
-
-    LinkedList dataSetValues = LinkedList_create();
-    LinkedList_add(dataSetValues, MmsValue_newIntegerFromInt32(1234));
-    LinkedList_add(dataSetValues, MmsValue_newBinaryTime(true));
-    LinkedList_add(dataSetValues, MmsValue_newIntegerFromInt32(5678));
-
-    CommParameters gooseCommParameters;
-
-    gooseCommParameters.appId = 1000;
-    gooseCommParameters.dstAddress[0] = 0x01;
-    gooseCommParameters.dstAddress[1] = 0x0c;
-    gooseCommParameters.dstAddress[2] = 0xcd;
-    gooseCommParameters.dstAddress[3] = 0x01;
-    gooseCommParameters.dstAddress[4] = 0x00;
-    gooseCommParameters.dstAddress[5] = 0x01;
-    gooseCommParameters.vlanId = 0;
-    gooseCommParameters.vlanPriority = 4;
 
     /*
      * Create a new GOOSE publisher instance. As the second parameter the interface
@@ -106,13 +144,45 @@ main(int argc, char **argv)
     GoosePublisher publisher = GoosePublisher_create(&gooseCommParameters, interface);
 
     if (publisher) {
-        GoosePublisher_setGoCbRef(publisher, "simpleIOGenericIO/LLN0$GO$gcbAnalogValues");
+        // TODO: Change the goCbRef and DataSetRef as well
+        // GoosePublisher_setGoCbRef(publisher, "simpleIOGenericIO/LLN0$GO$gcbAnalogValues");
         GoosePublisher_setConfRev(publisher, 1);
-        GoosePublisher_setDataSetRef(publisher, "simpleIOGenericIO/LLN0$AnalogValues");
+        // GoosePublisher_setDataSetRef(publisher, "simpleIOGenericIO/LLN0$AnalogValues");
         GoosePublisher_setTimeAllowedToLive(publisher, 500);
+
+        if (strcmp(device_name, "RTAC") == 0) 
+        {
+            printf("GOOSE RTAC GOOSE configuration initiated...\n");
+
+        } 
+        else if (strcmp(device_name, "651R_2") == 0)
+        {
+            printf("GOOSE 651R_2 GOOSE configuration initiated...\n");
+
+            // GoosePublisher_setGoCbRef(publisher, "simple_651R_2/LLN0$CO$BCACSWI2$Pos$ctlVal");
+            GoosePublisher_setGoCbRef(publisher, "simple_651R_2/PRO$CO$BCACSWI2");
+            GoosePublisher_setDataSetRef(publisher, "simple_651R_2/PRO$BCACSWI2_DataSet");
+        }
+        else if (strcmp(device_name, "787_2") == 0)
+        {
+            printf("GOOSE 787_2 GOOSE configuration initiated...\n");
+        }
+        else if (strcmp(device_name, "451_2") == 0)
+        {
+            printf("GOOSE 451_2 GOOSE configuration initiated...\n");
+        }
+        else
+        {
+            printf("No device supported, exiting...\n");
+            return 1;
+        }
+
 
         int i = 0;
         uint32_t prev_stNum = 0; 
+
+        // TODO: The below should be adjusted for each device
+        // based on the collected information.
 
         // Interval in ms
         // int min_interval = 10;
@@ -152,8 +222,9 @@ main(int argc, char **argv)
                 interval = max_interval;
             }
             
+            // .. then us a condition to change something to start from the
+            // beginning
 
-            // .. then change something to start from the beginning
             if( i == max_i) {
                 GoosePublisher_increaseStNum(publisher);
                 i = 0;
