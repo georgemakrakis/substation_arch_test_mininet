@@ -140,8 +140,8 @@ gooseListener(GooseSubscriber subscriber, void* parameter)
 
     if (strcmp(GooseSubscriber_getGoCbRef(subscriber), "simple_651R_2/PRO$CO$BCACSWI2") == 0){
         
-        LinkedList Last_Received_651R_2 = LinkedList_get(dataSetValuesReceivedFrom651R_2, 0);
-        MmsValue* Last_Received_651R_2_value = (MmsValue*) LinkedList_getData(Last_Received_651R_2);
+        // LinkedList Last_Received_651R_2 = LinkedList_get(dataSetValuesReceivedFrom651R_2, 0);
+        // MmsValue* Last_Received_651R_2_value = (MmsValue*) LinkedList_getData(Last_Received_651R_2);
 
         if(updated == 1){
             // Open 21
@@ -150,16 +150,19 @@ gooseListener(GooseSubscriber subscriber, void* parameter)
             LinkedList_remove(dataSetValuesTo787, value);
             LinkedList_add(dataSetValuesTo787, MmsValue_newIntegerFromInt32(0));
 
-            // Close 111 and 112
-            // prev_Val = LinkedList_get(dataSetValuesTo451_2, 0);
-            // value = (MmsValue*) LinkedList_getData(prev_Val);
-            // LinkedList_remove(dataSetValuesTo451_2, value);
-            // LinkedList_add(dataSetValuesTo451_2, MmsValue_newIntegerFromInt32(1));
+            // printf("dataSetValuesTo451_2 BEFORE values are: \n");
+            // printLinkedList(dataSetValuesTo451_2); 
 
-            // prev_Val = LinkedList_get(dataSetValuesTo451_2, 1);
-            // value = (MmsValue*) LinkedList_getData(prev_Val);
-            // LinkedList_remove(dataSetValuesTo451_2, value);
-            // LinkedList_add(dataSetValuesTo451_2, MmsValue_newIntegerFromInt32(1));
+            // Close 111 and 112
+            prev_Val = LinkedList_get(dataSetValuesTo451_2, 0);
+            value = (MmsValue*) LinkedList_getData(prev_Val);
+            LinkedList_remove(dataSetValuesTo451_2, value);
+            LinkedList_add(dataSetValuesTo451_2, MmsValue_newIntegerFromInt32(1));
+
+            prev_Val = LinkedList_get(dataSetValuesTo451_2, 0);
+            value = (MmsValue*) LinkedList_getData(prev_Val);
+            LinkedList_remove(dataSetValuesTo451_2, value);
+            LinkedList_add(dataSetValuesTo451_2, MmsValue_newIntegerFromInt32(1));
         }
     }
 
@@ -421,6 +424,8 @@ main(int argc, char **argv)
     int max_i = 10;
     int max_i_2 = 30;
 
+    int step_e_done = 0;
+
     if (publisher) {
         GoosePublisher_setConfRev(publisher, 1);
         GoosePublisher_setTimeAllowedToLive(publisher, 500);
@@ -545,18 +550,13 @@ main(int argc, char **argv)
                 // For RTAC --> 651-2
                 // Trip
                 LinkedList prev_Val_0 = LinkedList_get(dataSetValues, 0);
-                // Close
-                LinkedList prev_Val_1 = LinkedList_get(dataSetValues, 1);
-
-                // LinkedList_remove(dataSetValues, prev_Val);
-                // LinkedList_add(dataSetValues, MmsValue_newIntegerFromInt32(1));
-               
-
                 MmsValue* value = (MmsValue*) LinkedList_getData(prev_Val_0);
 
                 LinkedList_remove(dataSetValues, value);
-                LinkedList_add(dataSetValues, MmsValue_newIntegerFromInt32(1));
+                LinkedList_add(dataSetValues, MmsValue_newIntegerFromInt32(0));
 
+                // Close
+                LinkedList prev_Val_1 = LinkedList_get(dataSetValues, 1);
                 value = (MmsValue*) LinkedList_getData(prev_Val_1);
 
                 LinkedList_remove(dataSetValues, value);
@@ -572,25 +572,30 @@ main(int argc, char **argv)
                 LinkedList_add(dataSetValuesTo787, MmsValue_newIntegerFromInt32(1));
 
                 // For RTAC --> 451_2
-                // prev_Val_0 = LinkedList_get(dataSetValuesTo451_2, 0);
-                // prev_Val_1 = LinkedList_get(dataSetValuesTo451_2, 1);
+                prev_Val_0 = LinkedList_get(dataSetValuesTo451_2, 0);
+                prev_Val_1 = LinkedList_get(dataSetValuesTo451_2, 1);
                 
-                // value = (MmsValue*) LinkedList_getData(prev_Val_0);
-                // LinkedList_remove(dataSetValuesTo451_2, value);
-                // // Open 111
-                // LinkedList_add(dataSetValuesTo451_2, MmsValue_newIntegerFromInt32(0));
+                value = (MmsValue*) LinkedList_getData(prev_Val_0);
+                LinkedList_remove(dataSetValuesTo451_2, value);
+                // Open 111
+                LinkedList_add(dataSetValuesTo451_2, MmsValue_newIntegerFromInt32(0));
 
-                // value = (MmsValue*) LinkedList_getData(prev_Val_1);
-                // LinkedList_remove(dataSetValuesTo451_2, value);
-                // // Open 112
-                // LinkedList_add(dataSetValuesTo451_2, MmsValue_newIntegerFromInt32(0));
+                value = (MmsValue*) LinkedList_getData(prev_Val_1);
+                LinkedList_remove(dataSetValuesTo451_2, value);
+                // Open 112
+                LinkedList_add(dataSetValuesTo451_2, MmsValue_newIntegerFromInt32(0));
 
-                // i = 0;
+                step_e_done = 1;
                 // return 0;
             }
 
             i++;
 
+            // NOTE: Not sure if that is really needed.
+            if (step_e_done == 1){
+                i = 0;
+                step_e_done = 0;
+            }
         }
     }
     else {
