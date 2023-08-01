@@ -91,11 +91,11 @@ gooseListener(GooseSubscriber subscriber, void* parameter)
             if (elementValue) {
 
                 if (MmsValue_equals(elementValue, MmsValue_newIntegerFromInt32(1))){
-                    printf("Breaker Closed\n");
+                    // printf("Breaker Closed\n");
                     printf("Value %d\n", MmsValue_toInt32(elementValue));
                 }
                 else{
-                    printf("Breaker Open\n");
+                    // printf("Breaker Open\n");
                     printf("Value %d\n", MmsValue_toInt32(elementValue));
                 }
 
@@ -115,22 +115,6 @@ gooseListener(GooseSubscriber subscriber, void* parameter)
 
                         LinkedList_remove(dataSetValuesReceivedFrom651R_2, value);
                         LinkedList_add(dataSetValuesReceivedFrom651R_2, MmsValue_newIntegerFromInt32(MmsValue_toInt32(elementValue)));
-                        // printf("dataSetValuesReceivedFrom651R_2 values are: \n");
-                        // printLinkedList(dataSetValuesReceivedFrom651R_2); 
-
-                        // prev_Val = LinkedList_get(dataSetValuesTo787, i);
-                        // value = (MmsValue*) LinkedList_getData(prev_Val);
-
-                        // // Open 21
-                        // LinkedList_remove(dataSetValuesTo787, value);
-                        // LinkedList_add(dataSetValuesTo787, MmsValue_newIntegerFromInt32(0));
-
-
-                        // prev_Val = LinkedList_get(dataSetValuesTo451_2, i);
-                        // value = (MmsValue*) LinkedList_getData(prev_Val);
-                        // // Close 111 and 112
-                        // LinkedList_remove(dataSetValuesTo451_2, value);
-                        // LinkedList_add(dataSetValuesTo451_2, MmsValue_newIntegerFromInt32(1));
                 }
             }
         }
@@ -139,9 +123,6 @@ gooseListener(GooseSubscriber subscriber, void* parameter)
     
 
     if (strcmp(GooseSubscriber_getGoCbRef(subscriber), "simple_651R_2/PRO$CO$BCACSWI2") == 0){
-        
-        // LinkedList Last_Received_651R_2 = LinkedList_get(dataSetValuesReceivedFrom651R_2, 0);
-        // MmsValue* Last_Received_651R_2_value = (MmsValue*) LinkedList_getData(Last_Received_651R_2);
 
         if(updated == 1){
             // Open 21
@@ -425,6 +406,7 @@ main(int argc, char **argv)
     int max_i_2 = 30;
 
     int step_e_done = 0;
+    int step_a_done = 0;
 
     if (publisher) {
         GoosePublisher_setConfRev(publisher, 1);
@@ -524,7 +506,7 @@ main(int argc, char **argv)
             // }
 
             // This could be step a) 
-            if (strcmp(device_name, "651R_2") == 0 && i == max_i) {
+            if (strcmp(device_name, "651R_2") == 0 && i == max_i && step_a_done == 0) {
                 printf("=================== STEP A)  ===================");
                 LinkedList prev_Val = LinkedList_get(dataSetValues, 0);
 
@@ -537,15 +519,20 @@ main(int argc, char **argv)
                 LinkedList_remove(dataSetValues, value);
                 LinkedList_add(dataSetValues, MmsValue_newIntegerFromInt32(1));
 
-                // i = 0;
+                GoosePublisher_increaseStNum(publisher);
+                publish_interval = min_interval;
+
+                step_a_done = 1;
+
+                i = 0;
             }
 
             // This could be step e)
             // TODO: That will be if step e) happens from RTAC --> 651-2?
             // Combined all the events in the single "if block".
-            if (strcmp(device_name, "RTAC") == 0 && i == max_i_2) {
+            if (strcmp(device_name, "RTAC") == 0 && i == max_i_2 && step_e_done == 0) {
 
-                printf("=================== ISSUE FIXED, RESTORING ===================");
+                printf("=================== ISSUE FIXED, RESTORING ( STEP E) ) ===================");
                 
                 // For RTAC --> 651-2
                 // Trip
@@ -585,17 +572,26 @@ main(int argc, char **argv)
                 // Open 112
                 LinkedList_add(dataSetValuesTo451_2, MmsValue_newIntegerFromInt32(0));
 
+                GoosePublisher_increaseStNum(publisher);
+                publish_interval = min_interval;
+
                 step_e_done = 1;
+                i = 0;
                 // return 0;
             }
 
             i++;
 
             // NOTE: Not sure if that is really needed.
-            if (step_e_done == 1){
-                i = 0;
-                step_e_done = 0;
-            }
+            // if (step_e_done == 1){
+            //     i = 0;
+            //     step_e_done = 0;
+            // }
+
+            // if (step_a_done == 1){
+            //     i = 0;
+                // step_a_done = 0;
+            // }
         }
     }
     else {
