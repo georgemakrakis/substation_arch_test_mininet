@@ -381,7 +381,7 @@ main(int argc, char **argv)
         return 1;
     }
 
-    char * devices [] = { "RTAC", "651R_2", "787_2", "451_2" };
+    char * devices [] = { "RTAC", "651R_2", "787_2", "451_2", "487B_2",  "351_2"};
     int len = sizeof(devices)/sizeof(devices[0]);
     int found = 0;
 
@@ -429,7 +429,7 @@ main(int argc, char **argv)
         printf("GOOSE subscriber 787_2 configuration initiated...\n");
 
         // TODO: After testing rename this to just "subscriber"
-        subscriber = GooseSubscriber_create("simple_651R_2/PRO$CO$TEST_2", NULL);
+        subscriber = GooseSubscriber_create("simple_787_2/PRO$CO$TEST_2", NULL);
         uint8_t dstMac[6] = {0x01,0x0c,0xcd,0x01,0x00,0x03};
         GooseSubscriber_setDstMac(subscriber, dstMac);
         GooseSubscriber_setAppId(subscriber, 1003);
@@ -439,10 +439,30 @@ main(int argc, char **argv)
         printf("GOOSE 451_2 configuration initiated...\n");
 
         // TODO: After testing rename this to just "subscriber"
-        subscriber = GooseSubscriber_create("simple_651R_2/PRO$CO$TEST_3", NULL);
+        subscriber = GooseSubscriber_create("simple_451_2/PRO$CO$TEST_3", NULL);
         uint8_t dstMac[6] = {0x01,0x0c,0xcd,0x01,0x00,0x04};
         GooseSubscriber_setDstMac(subscriber, dstMac);
         GooseSubscriber_setAppId(subscriber, 1004);
+    }
+    else if (strcmp(device_name, "487B_2") == 0)
+    {
+        printf("GOOSE 487B_2 configuration initiated...\n");
+
+        // TODO: After testing rename this to just "subscriber"
+        subscriber = GooseSubscriber_create("simple_487B_2/PRO$CO$TEST_4", NULL);
+        uint8_t dstMac[6] = {0x01,0x0c,0xcd,0x01,0x00,0x05};
+        GooseSubscriber_setDstMac(subscriber, dstMac);
+        GooseSubscriber_setAppId(subscriber, 1005);
+    }
+    else if (strcmp(device_name, "351_2") == 0)
+    {
+        printf("GOOSE 351_2 configuration initiated...\n");
+
+        // TODO: After testing rename this to just "subscriber"
+        subscriber = GooseSubscriber_create("simple_351_2/PRO$CO$TEST_3", NULL);
+        uint8_t dstMac[6] = {0x01,0x0c,0xcd,0x01,0x00,0x06};
+        GooseSubscriber_setDstMac(subscriber, dstMac);
+        GooseSubscriber_setAppId(subscriber, 1006);
     }
     else
     {
@@ -564,6 +584,58 @@ main(int argc, char **argv)
     {
         printf("GOOSE publisher 451_2 configuration initiated...\n");
     }
+    else if (strcmp(device_name, "487B_2") == 0)
+    {
+        printf("GOOSE publisher 487B_2 configuration initiated...\n");
+        
+        // Breaker status (for device No ?) 0/1 or Open/Close.
+        // 22
+        LinkedList_add(dataSetValues, MmsValue_newIntegerFromInt32(0));
+        // 23
+        LinkedList_add(dataSetValues, MmsValue_newIntegerFromInt32(0));
+        // 24
+        LinkedList_add(dataSetValues, MmsValue_newIntegerFromInt32(0));
+        // LinkedList_add(dataSetValues, MmsValue_newBoolean(true));
+
+        // Trip command (for device No ?) Trip/NoTrip.
+        // LinkedList_add(dataSetValues, MmsValue_newIntegerFromInt32(0));
+         // NOTE: Disable for now might be enabled later.
+        // LinkedList_add(dataSetValues, MmsValue_newBoolean(false));
+
+        gooseCommParameters.appId = 1005;
+        gooseCommParameters.dstAddress[0] = 0x01;
+        gooseCommParameters.dstAddress[1] = 0x0c;
+        gooseCommParameters.dstAddress[2] = 0xcd;
+        gooseCommParameters.dstAddress[3] = 0x01;
+        gooseCommParameters.dstAddress[4] = 0x00;
+        gooseCommParameters.dstAddress[5] = 0x05;
+        gooseCommParameters.vlanId = 0;
+        gooseCommParameters.vlanPriority = 4;
+    }
+    else if (strcmp(device_name, "351_2") == 0)
+    {
+        printf("GOOSE publisher 351_2 configuration initiated...\n");
+
+         // Breaker status (for device No ?) 0/1 or Open/Close.
+        // 25
+        LinkedList_add(dataSetValues, MmsValue_newIntegerFromInt32(0));
+        // LinkedList_add(dataSetValues, MmsValue_newBoolean(true));
+
+        // Trip command (for device No ?) Trip/NoTrip.
+        // LinkedList_add(dataSetValues, MmsValue_newIntegerFromInt32(0));
+         // NOTE: Disable for now might be enabled later.
+        // LinkedList_add(dataSetValues, MmsValue_newBoolean(false));
+
+        gooseCommParameters.appId = 1006;
+        gooseCommParameters.dstAddress[0] = 0x01;
+        gooseCommParameters.dstAddress[1] = 0x0c;
+        gooseCommParameters.dstAddress[2] = 0xcd;
+        gooseCommParameters.dstAddress[3] = 0x01;
+        gooseCommParameters.dstAddress[4] = 0x00;
+        gooseCommParameters.dstAddress[5] = 0x06;
+        gooseCommParameters.vlanId = 0;
+        gooseCommParameters.vlanPriority = 4;
+    }
     else
     {
         printf("No device supported, exiting...\n");
@@ -611,8 +683,8 @@ main(int argc, char **argv)
             GoosePublisher_setGoCbRef(publisher_2, "simple_787_2/PRO$CO$TEST_2");
             GoosePublisher_setDataSetRef(publisher_2, "simple_787_2/PRO$TEST_DataSet_2");
 
-            GoosePublisher_setGoCbRef(publisher_3, "simple_651R_2/PRO$CO$TEST_3");
-            GoosePublisher_setDataSetRef(publisher_3, "simple_651R_2/PRO$TEST_DataSet_3");
+            GoosePublisher_setGoCbRef(publisher_3, "simple_451_2/PRO$CO$TEST_3");
+            GoosePublisher_setDataSetRef(publisher_3, "simple_451_2/PRO$TEST_DataSet_3");
         } 
         // NOTE: JUST FOR TESTING
         else if (strcmp(device_name, "651R_2") == 0)
@@ -631,6 +703,17 @@ main(int argc, char **argv)
         else if (strcmp(device_name, "451_2") == 0)
         {
             printf("451_2 GOOSE configuration initiated...\n");
+        }
+        else if (strcmp(device_name, "487B_2") == 0)
+        {
+            printf("487B_2 GOOSE configuration initiated...\n");
+
+            GoosePublisher_setGoCbRef(publisher, "simple_487B_2/PRO$CO$BCACSWI2");
+            GoosePublisher_setDataSetRef(publisher, "simple_487B_2/PRO$BCACSWI2_DataSet");
+        }
+        else if (strcmp(device_name, "351_2") == 0)
+        {
+            printf("351_2 GOOSE configuration initiated...\n");
         }
         else
         {
