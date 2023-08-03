@@ -308,7 +308,7 @@ void *threadedPublisher(void *input)
 
                 step_a_done = 1;
 
-                i = 0;
+                // i = 0;
             }
 
             // This could be step e)

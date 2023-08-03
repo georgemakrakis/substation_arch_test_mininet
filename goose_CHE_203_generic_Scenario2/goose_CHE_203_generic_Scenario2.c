@@ -60,6 +60,9 @@ static
 LinkedList dataSetValuesReceivedFrom651R_2;
 
 static
+LinkedList dataSetValuesReceivedFrom487B_2;
+
+static
 LinkedList dataSetValuesTo787;
 
 static
@@ -120,16 +123,28 @@ gooseListener(GooseSubscriber subscriber, void* parameter)
                 // TODO: Shall we also move the if statement somewhere outside the loop?
                 if (strcmp(GooseSubscriber_getGoCbRef(subscriber), "simple_651R_2/PRO$CO$BCACSWI2") == 0){
                         
-                        LinkedList prev_Val = LinkedList_get(dataSetValuesReceivedFrom651R_2, i);
+                    LinkedList prev_Val = LinkedList_get(dataSetValuesReceivedFrom651R_2, i);
 
-                        MmsValue* value = (MmsValue*) LinkedList_getData(prev_Val);
+                    MmsValue* value = (MmsValue*) LinkedList_getData(prev_Val);
 
-                        if (MmsValue_toInt32(value) != MmsValue_toInt32(elementValue)){
-                            updated = 1;
-                        }
+                    if (MmsValue_toInt32(value) != MmsValue_toInt32(elementValue)){
+                        updated = 1;
+                    }
 
-                        LinkedList_remove(dataSetValuesReceivedFrom651R_2, value);
-                        LinkedList_add(dataSetValuesReceivedFrom651R_2, MmsValue_newIntegerFromInt32(MmsValue_toInt32(elementValue)));
+                    LinkedList_remove(dataSetValuesReceivedFrom651R_2, value);
+                    LinkedList_add(dataSetValuesReceivedFrom651R_2, MmsValue_newIntegerFromInt32(MmsValue_toInt32(elementValue)));
+                }
+                else if (strcmp(GooseSubscriber_getGoCbRef(subscriber), "simple_487B_2/PRO$CO$BCACSWI2") == 0){
+                    LinkedList prev_Val = LinkedList_get(dataSetValuesReceivedFrom487B_2, i);
+
+                    MmsValue* value = (MmsValue*) LinkedList_getData(prev_Val);
+
+                    if (MmsValue_toInt32(value) != MmsValue_toInt32(elementValue)){
+                        updated = 1;
+                    }
+
+                    LinkedList_remove(dataSetValuesReceivedFrom487B_2, value);
+                    LinkedList_add(dataSetValuesReceivedFrom487B_2, MmsValue_newIntegerFromInt32(MmsValue_toInt32(elementValue)));
                 }
             }
         }
@@ -210,7 +225,9 @@ void *threadedPublisher(void *input)
     GoosePublisher publisher = ((struct args_pub*)input)->publisher;
     GoosePublisher publisher_2 = ((struct args_pub*)input)->publisher_2;
     GoosePublisher publisher_3 = ((struct args_pub*)input)->publisher_3;
-    
+
+    // TODO: The below should be adjusted for each device
+    // based on the collected information.
 
     int i = 0;
     // Intervals in ms
@@ -228,15 +245,17 @@ void *threadedPublisher(void *input)
 
     int step_e_done = 0;
     int step_a_done = 0;
+    int step_b_done = 0;
+
     while (1) {
-            // Now we also publish based on the defined interval
+             // Now we also publish based on the defined interval
             if (GoosePublisher_publish(publisher, dataSetValues) == -1 
                 || GoosePublisher_publish(publisher_2, dataSetValuesTo787) == -1
                 || GoosePublisher_publish(publisher_3, dataSetValuesTo451_2) == -1) {
                     printf("Error sending message!\n");
             }
-            Thread_sleep(publish_interval);
             printf("Publishing...\n");
+            // Thread_sleep(publish_interval);
 
             // First option 
             // if( i <= 3) {
@@ -247,24 +266,68 @@ void *threadedPublisher(void *input)
             // }
 
             // Second option
-            if( i == 0) {
-                publish_interval = min_interval;
+            // if( i == 0) {
+            //     publish_interval = min_interval;
+            // }
+            // else if( i < 3) {
+            //     publish_interval = 2 * publish_interval;
+            // }
+            // else {
+            //     publish_interval = max_interval;
+            // }
+
+            // The different Transmit Interval algorithms for each device.
+            if (strcmp(device_name, "651R_2") == 0) {
+
+                if( i == 0 || i == 1) {
+                    publish_interval = min_interval;
+                }
+                else if( i == 2) {
+                    publish_interval = 2 * publish_interval;
+                }
+                else {
+                    publish_interval = max_interval;
+                }
             }
-            else if( i < 3) {
-                publish_interval = 2 * publish_interval;
+            else if (strcmp(device_name, "RTAC") == 0) {
+
+                if( i == 0) {
+                    publish_interval = min_interval;
+                }
+                else if( i < 3) {
+                    publish_interval = 2 * publish_interval;
+                }
+                else {
+                    publish_interval = max_interval;
+                }
             }
-            else {
-                publish_interval = max_interval;
+            else if (strcmp(device_name, "487B_2") == 0) {
+                
+                if( i == 0 || i == 1) {
+                    publish_interval = min_interval;
+                }
+                else if( i == 2) {
+                    publish_interval = 2 * publish_interval;
+                }
+                else {
+                    publish_interval = max_interval;
+                }
+            }
+            else if (strcmp(device_name, "351_2") == 0) {
+                
+                if( i == 0 || i == 1) {
+                    publish_interval = min_interval;
+                }
+                else if( i == 2) {
+                    publish_interval = 2 * publish_interval;
+                }
+                else {
+                    publish_interval = max_interval;
+                }
             }
             
             // .. then us a condition to change something to start from the
             // beginning
-
-            // if( i == max_i) {
-            //     GoosePublisher_increaseStNum(publisher);
-            //     i = 0;
-            //     publish_interval = min_interval;
-            // }
 
             // This could be step a) 
             if (strcmp(device_name, "651R_2") == 0 && i == max_i && step_a_done == 0) {
@@ -285,7 +348,60 @@ void *threadedPublisher(void *input)
 
                 step_a_done = 1;
 
-                i = 0;
+                // i = 0;
+            }
+
+            // This could be step b) 
+            if (i == max_i && step_b_done == 0) {
+
+                if ( strcmp(device_name, "487B_2") == 0) {
+                    printf("=================== STEP B)  ===================");
+
+                    // Trip 22
+                    LinkedList prev_Val = LinkedList_get(dataSetValues, 0);
+                    MmsValue* value = (MmsValue*) LinkedList_getData(prev_Val);
+
+                    LinkedList_remove(dataSetValues, value);
+                    LinkedList_add(dataSetValues, MmsValue_newIntegerFromInt32(1));
+
+                    // Trip 23
+                    LinkedList prev_Val_2 = LinkedList_get(dataSetValues, 1);
+                    value = (MmsValue*) LinkedList_getData(prev_Val_2);
+
+                    LinkedList_remove(dataSetValues, value);
+                    LinkedList_add(dataSetValues, MmsValue_newIntegerFromInt32(1));
+
+                    // Trip 24
+                    LinkedList prev_Val_3 = LinkedList_get(dataSetValues, 0);
+                    value = (MmsValue*) LinkedList_getData(prev_Val_3);
+
+                    LinkedList_remove(dataSetValues, value);
+                    LinkedList_add(dataSetValues, MmsValue_newIntegerFromInt32(1));
+
+                    GoosePublisher_increaseStNum(publisher);
+                    publish_interval = min_interval;
+
+                    step_b_done = 1;
+
+                    // i = 0;
+                }
+                else if ( strcmp(device_name, "351_2") == 0) {
+                    printf("=================== STEP B)  ===================");
+
+                    // Trip 25
+                    LinkedList prev_Val = LinkedList_get(dataSetValues, 0);
+                    MmsValue* value = (MmsValue*) LinkedList_getData(prev_Val);
+
+                    LinkedList_remove(dataSetValues, value);
+                    LinkedList_add(dataSetValues, MmsValue_newIntegerFromInt32(1));
+
+                    GoosePublisher_increaseStNum(publisher);
+                    publish_interval = min_interval;
+
+                    step_b_done = 1;
+
+                    // i = 0;
+                }
             }
 
             // This could be step e)
@@ -334,25 +450,32 @@ void *threadedPublisher(void *input)
                 LinkedList_add(dataSetValuesTo451_2, MmsValue_newIntegerFromInt32(0));
 
                 GoosePublisher_increaseStNum(publisher);
-                publish_interval = min_interval;
+                publish_interval = 0;
 
                 step_e_done = 1;
-                i = 0;
+                // i = 0;
                 // return 0;
             }
 
             i++;
 
             // NOTE: Not sure if that is really needed.
-            // if (step_e_done == 1){
-            //     i = 0;
-            //     step_e_done = 0;
-            // }
+            if (step_e_done == 1){
+                i = 0;
+                step_e_done = 0;
+            }
+
+            if (step_b_done == 1){
+                i = 0;
+                step_b_done = 0;
+            }
 
             // if (step_a_done == 1){
             //     i = 0;
                 // step_a_done = 0;
             // }
+
+            Thread_sleep(publish_interval);
     }
 }
 
@@ -449,20 +572,20 @@ main(int argc, char **argv)
         printf("GOOSE 487B_2 configuration initiated...\n");
 
         // TODO: After testing rename this to just "subscriber"
-        subscriber = GooseSubscriber_create("simple_487B_2/PRO$CO$TEST_4", NULL);
-        uint8_t dstMac[6] = {0x01,0x0c,0xcd,0x01,0x00,0x05};
+        subscriber = GooseSubscriber_create("simple_351_2/PRO$CO$TEST_5", NULL);
+        uint8_t dstMac[6] = {0x01,0x0c,0xcd,0x01,0x00,0x06};
         GooseSubscriber_setDstMac(subscriber, dstMac);
-        GooseSubscriber_setAppId(subscriber, 1005);
+        GooseSubscriber_setAppId(subscriber, 1006);
     }
     else if (strcmp(device_name, "351_2") == 0)
     {
         printf("GOOSE 351_2 configuration initiated...\n");
 
         // TODO: After testing rename this to just "subscriber"
-        subscriber = GooseSubscriber_create("simple_351_2/PRO$CO$TEST_3", NULL);
-        uint8_t dstMac[6] = {0x01,0x0c,0xcd,0x01,0x00,0x06};
+        subscriber = GooseSubscriber_create("simple_487B_2/PRO$CO$BCACSWI2", NULL);
+        uint8_t dstMac[6] = {0x01,0x0c,0xcd,0x01,0x00,0x05};
         GooseSubscriber_setDstMac(subscriber, dstMac);
-        GooseSubscriber_setAppId(subscriber, 1006);
+        GooseSubscriber_setAppId(subscriber, 1005);
     }
     else
     {
@@ -473,6 +596,7 @@ main(int argc, char **argv)
     //.. and now the publisher
     dataSetValues = LinkedList_create();
     dataSetValuesReceivedFrom651R_2 = LinkedList_create();
+    dataSetValuesReceivedFrom487B_2 = LinkedList_create();
     dataSetValuesTo787 = LinkedList_create();
     dataSetValuesTo451_2 = LinkedList_create();
 
@@ -626,6 +750,11 @@ main(int argc, char **argv)
          // NOTE: Disable for now might be enabled later.
         // LinkedList_add(dataSetValues, MmsValue_newBoolean(false));
 
+        // Trip command (for device No 351_2) 0/1 NoTrip/Trip.
+        LinkedList_add(dataSetValuesReceivedFrom487B_2,  MmsValue_newIntegerFromInt32(0));
+        LinkedList_add(dataSetValuesReceivedFrom487B_2,  MmsValue_newIntegerFromInt32(0));
+        LinkedList_add(dataSetValuesReceivedFrom487B_2,  MmsValue_newIntegerFromInt32(0));
+
         gooseCommParameters.appId = 1006;
         gooseCommParameters.dstAddress[0] = 0x01;
         gooseCommParameters.dstAddress[1] = 0x0c;
@@ -649,25 +778,6 @@ main(int argc, char **argv)
 
     int i = 0;
     uint32_t prev_stNum = 0; 
-
-    // TODO: The below should be adjusted for each device
-    // based on the collected information.
-
-    // Intervals in ms
-    // int min_interval = 10;
-    int min_interval = 4;
-    // int min_interval = 500;
-    int publish_interval = min_interval;
-    // int max_interval = 100;
-    int max_interval = 1000;
-    // int max_interval = 5000;
-    
-    // NOTE: Used as a simple condition to increase the StNum
-    int max_i = 10;
-    int max_i_2 = 30;
-
-    int step_e_done = 0;
-    int step_a_done = 0;
 
     if (publisher) {
         GoosePublisher_setConfRev(publisher, 1);
@@ -729,146 +839,6 @@ main(int argc, char **argv)
     GooseReceiver_addSubscriber(receiver, subscriber);
 
     GooseReceiver_start(receiver);
-
-    // if (GooseReceiver_isRunning(receiver)) {
-    //     // ready to receive messages.
-    //     signal(SIGINT, sigint_handler);
-
-    //     while (running) {
-    //         // NOTE: this was for μs
-    //         // Thread_sleep(100);
-            
-    //         Thread_sleep(100);
-
-    //         // Now we also publish based on the defined interval
-    //         if (GoosePublisher_publish(publisher, dataSetValues) == -1 
-    //             || GoosePublisher_publish(publisher_2, dataSetValuesTo787) == -1
-    //             || GoosePublisher_publish(publisher_3, dataSetValuesTo451_2) == -1) {
-    //                 printf("Error sending message!\n");
-    //         }
-    //         Thread_sleep(publish_interval);
-    //         printf("Publishing...\n");
-
-    //         // First option 
-    //         // if( i <= 3) {
-    //         //     interval = 2 * interval;
-    //         // }
-    //         // else {
-    //         //     interval = max_interval;
-    //         // }
-
-    //         // Second option
-    //         if( i == 0) {
-    //             publish_interval = min_interval;
-    //         }
-    //         else if( i < 3) {
-    //             publish_interval = 2 * publish_interval;
-    //         }
-    //         else {
-    //             publish_interval = max_interval;
-    //         }
-            
-    //         // .. then us a condition to change something to start from the
-    //         // beginning
-
-    //         // if( i == max_i) {
-    //         //     GoosePublisher_increaseStNum(publisher);
-    //         //     i = 0;
-    //         //     publish_interval = min_interval;
-    //         // }
-
-    //         // This could be step a) 
-    //         if (strcmp(device_name, "651R_2") == 0 && i == max_i && step_a_done == 0) {
-    //             printf("=================== STEP A)  ===================");
-    //             LinkedList prev_Val = LinkedList_get(dataSetValues, 0);
-
-    //             // LinkedList_remove(dataSetValues, prev_Val);
-    //             // LinkedList_add(dataSetValues, MmsValue_newIntegerFromInt32(1));
-               
-
-    //             MmsValue* value = (MmsValue*) LinkedList_getData(prev_Val);
-
-    //             LinkedList_remove(dataSetValues, value);
-    //             LinkedList_add(dataSetValues, MmsValue_newIntegerFromInt32(1));
-
-    //             GoosePublisher_increaseStNum(publisher);
-    //             publish_interval = min_interval;
-
-    //             step_a_done = 1;
-
-    //             i = 0;
-    //         }
-
-    //         // This could be step e)
-    //         // TODO: That will be if step e) happens from RTAC --> 651-2?
-    //         // Combined all the events in the single "if block".
-    //         if (strcmp(device_name, "RTAC") == 0 && i == max_i_2 && step_e_done == 0) {
-
-    //             printf("=================== ISSUE FIXED, RESTORING ( STEP E) ) ===================");
-                
-    //             // For RTAC --> 651-2
-    //             // Trip
-    //             LinkedList prev_Val_0 = LinkedList_get(dataSetValues, 0);
-    //             MmsValue* value = (MmsValue*) LinkedList_getData(prev_Val_0);
-
-    //             LinkedList_remove(dataSetValues, value);
-    //             LinkedList_add(dataSetValues, MmsValue_newIntegerFromInt32(0));
-
-    //             // Close
-    //             LinkedList prev_Val_1 = LinkedList_get(dataSetValues, 1);
-    //             value = (MmsValue*) LinkedList_getData(prev_Val_1);
-
-    //             LinkedList_remove(dataSetValues, value);
-    //             LinkedList_add(dataSetValues, MmsValue_newIntegerFromInt32(1));
-
-    //             // For RTAC --> 787_2
-    //             prev_Val_0 = LinkedList_get(dataSetValuesTo787, 0);
-                
-    //             value = (MmsValue*) LinkedList_getData(prev_Val_0);
-
-    //             LinkedList_remove(dataSetValuesTo787, value);
-    //             // Close 21
-    //             LinkedList_add(dataSetValuesTo787, MmsValue_newIntegerFromInt32(1));
-
-    //             // For RTAC --> 451_2
-    //             prev_Val_0 = LinkedList_get(dataSetValuesTo451_2, 0);
-    //             prev_Val_1 = LinkedList_get(dataSetValuesTo451_2, 1);
-                
-    //             value = (MmsValue*) LinkedList_getData(prev_Val_0);
-    //             LinkedList_remove(dataSetValuesTo451_2, value);
-    //             // Open 111
-    //             LinkedList_add(dataSetValuesTo451_2, MmsValue_newIntegerFromInt32(0));
-
-    //             value = (MmsValue*) LinkedList_getData(prev_Val_1);
-    //             LinkedList_remove(dataSetValuesTo451_2, value);
-    //             // Open 112
-    //             LinkedList_add(dataSetValuesTo451_2, MmsValue_newIntegerFromInt32(0));
-
-    //             GoosePublisher_increaseStNum(publisher);
-    //             publish_interval = min_interval;
-
-    //             step_e_done = 1;
-    //             i = 0;
-    //             // return 0;
-    //         }
-
-    //         i++;
-
-    //         // NOTE: Not sure if that is really needed.
-    //         // if (step_e_done == 1){
-    //         //     i = 0;
-    //         //     step_e_done = 0;
-    //         // }
-
-    //         // if (step_a_done == 1){
-    //         //     i = 0;
-    //             // step_a_done = 0;
-    //         // }
-    //     }
-    // }
-    // else {
-    //     printf("Failed to start GOOSE subscriber. Reason can be that the Ethernet interface doesn't exist or root permission are required.\n");
-    // }
 
     pthread_t tid_rec;
     struct args_rec *rec_struct = (struct args_rec *)malloc(sizeof(struct args_rec));
