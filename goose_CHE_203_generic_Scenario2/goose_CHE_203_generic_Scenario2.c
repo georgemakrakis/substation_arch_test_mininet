@@ -63,6 +63,9 @@ static
 LinkedList dataSetValuesReceivedFrom487B_2;
 
 static
+LinkedList dataSetValuesReceivedFrom451_2;
+
+static
 LinkedList dataSetValuesTo787;
 
 static
@@ -145,6 +148,18 @@ gooseListener(GooseSubscriber subscriber, void* parameter)
 
                     LinkedList_remove(dataSetValuesReceivedFrom487B_2, value);
                     LinkedList_add(dataSetValuesReceivedFrom487B_2, MmsValue_newIntegerFromInt32(MmsValue_toInt32(elementValue)));
+                }
+                else if (strcmp(GooseSubscriber_getGoCbRef(subscriber), "simple_451_2/PRO$CO$BCACSWI2") == 0){
+                    LinkedList prev_Val = LinkedList_get(dataSetValuesReceivedFrom451_2, i);
+
+                    MmsValue* value = (MmsValue*) LinkedList_getData(prev_Val);
+
+                    if (MmsValue_toInt32(value) != MmsValue_toInt32(elementValue)){
+                        updated = 1;
+                    }
+
+                    LinkedList_remove(dataSetValuesReceivedFrom451_2, value);
+                    LinkedList_add(dataSetValuesReceivedFrom451_2, MmsValue_newIntegerFromInt32(MmsValue_toInt32(elementValue)));
                 }
             }
         }
@@ -314,6 +329,18 @@ void *threadedPublisher(void *input)
                 }
             }
             else if (strcmp(device_name, "351_2") == 0) {
+                
+                if( i == 0 || i == 1) {
+                    publish_interval = min_interval;
+                }
+                else if( i == 2) {
+                    publish_interval = 2 * publish_interval;
+                }
+                else {
+                    publish_interval = max_interval;
+                }
+            }
+            else if (strcmp(device_name, "451_2") == 0) {
                 
                 if( i == 0 || i == 1) {
                     publish_interval = min_interval;
@@ -522,6 +549,7 @@ main(int argc, char **argv)
     // First let's setup the subscriber
     GooseSubscriber subscriber;
     GooseSubscriber subscriber_2;
+    GooseSubscriber subscriber_3;
 
     if (strcmp(device_name, "RTAC") == 0) 
     {
@@ -533,6 +561,18 @@ main(int argc, char **argv)
         uint8_t dstMac[6] = {0x01,0x0c,0xcd,0x01,0x00,0x02};
         GooseSubscriber_setDstMac(subscriber, dstMac);
         GooseSubscriber_setAppId(subscriber, 1002);
+
+        // sub for data from 487B_2
+        subscriber_2 = GooseSubscriber_create("simple_487B_2/PRO$CO$BCACSWI2", NULL);
+        dstMac[5] = 0x05;
+        GooseSubscriber_setDstMac(subscriber_2, dstMac);
+        GooseSubscriber_setAppId(subscriber_2, 1005);
+        
+        subscriber_3 = GooseSubscriber_create("simple_351_2/PRO$CO$BCACSWI2", NULL);
+        dstMac[5] = 0x06;
+        GooseSubscriber_setDstMac(subscriber_3, dstMac);
+        GooseSubscriber_setAppId(subscriber_3, 1006);
+        
     } 
     else if (strcmp(device_name, "651R_2") == 0)
     {
@@ -572,10 +612,15 @@ main(int argc, char **argv)
         printf("GOOSE 487B_2 configuration initiated...\n");
 
         // TODO: After testing rename this to just "subscriber"
-        subscriber = GooseSubscriber_create("simple_351_2/PRO$CO$TEST_5", NULL);
+        subscriber = GooseSubscriber_create("simple_351_2/PRO$CO$BCACSWI2", NULL);
         uint8_t dstMac[6] = {0x01,0x0c,0xcd,0x01,0x00,0x06};
         GooseSubscriber_setDstMac(subscriber, dstMac);
         GooseSubscriber_setAppId(subscriber, 1006);
+
+        subscriber_2 = GooseSubscriber_create("simple_451_2/PRO$CO$BCACSWI2", NULL);
+        dstMac[5] = 0x07;
+        GooseSubscriber_setDstMac(subscriber_2, dstMac);
+        GooseSubscriber_setAppId(subscriber_2, 1007);
     }
     else if (strcmp(device_name, "351_2") == 0)
     {
@@ -597,6 +642,7 @@ main(int argc, char **argv)
     dataSetValues = LinkedList_create();
     dataSetValuesReceivedFrom651R_2 = LinkedList_create();
     dataSetValuesReceivedFrom487B_2 = LinkedList_create();
+    dataSetValuesReceivedFrom451_2 = LinkedList_create();
     dataSetValuesTo787 = LinkedList_create();
     dataSetValuesTo451_2 = LinkedList_create();
 
@@ -673,6 +719,12 @@ main(int argc, char **argv)
         gooseCommParameters_3.vlanId = 0;
         gooseCommParameters_3.vlanPriority = 4;
 
+        
+        // Trip command (for device No 351_2) 0/1 NoTrip/Trip.
+        LinkedList_add(dataSetValuesReceivedFrom487B_2,  MmsValue_newIntegerFromInt32(0));
+        LinkedList_add(dataSetValuesReceivedFrom487B_2,  MmsValue_newIntegerFromInt32(0));
+        LinkedList_add(dataSetValuesReceivedFrom487B_2,  MmsValue_newIntegerFromInt32(0));
+
     } 
     // NOTE: JUST FOR TESTING
     else if (strcmp(device_name, "651R_2") == 0)
@@ -707,12 +759,28 @@ main(int argc, char **argv)
     else if (strcmp(device_name, "451_2") == 0)
     {
         printf("GOOSE publisher 451_2 configuration initiated...\n");
+
+        // 112
+        LinkedList_add(dataSetValues, MmsValue_newIntegerFromInt32(0));
+        // 111
+        LinkedList_add(dataSetValues, MmsValue_newIntegerFromInt32(0));
+
+        gooseCommParameters.appId = 1007;
+        gooseCommParameters.dstAddress[0] = 0x01;
+        gooseCommParameters.dstAddress[1] = 0x0c;
+        gooseCommParameters.dstAddress[2] = 0xcd;
+        gooseCommParameters.dstAddress[3] = 0x01;
+        gooseCommParameters.dstAddress[4] = 0x00;
+        gooseCommParameters.dstAddress[5] = 0x07;
+        gooseCommParameters.vlanId = 0;
+        gooseCommParameters.vlanPriority = 4;
+
     }
     else if (strcmp(device_name, "487B_2") == 0)
     {
         printf("GOOSE publisher 487B_2 configuration initiated...\n");
         
-        // Breaker status (for device No ?) 0/1 or Open/Close.
+        // Trip status (for device No ?) 0/1 or NoTrip/Trip.
         // 22
         LinkedList_add(dataSetValues, MmsValue_newIntegerFromInt32(0));
         // 23
@@ -725,6 +793,9 @@ main(int argc, char **argv)
         // LinkedList_add(dataSetValues, MmsValue_newIntegerFromInt32(0));
          // NOTE: Disable for now might be enabled later.
         // LinkedList_add(dataSetValues, MmsValue_newBoolean(false));
+        
+        LinkedList_add(dataSetValuesReceivedFrom451_2, MmsValue_newIntegerFromInt32(0));
+        LinkedList_add(dataSetValuesReceivedFrom451_2, MmsValue_newIntegerFromInt32(0));
 
         gooseCommParameters.appId = 1005;
         gooseCommParameters.dstAddress[0] = 0x01;
@@ -740,14 +811,14 @@ main(int argc, char **argv)
     {
         printf("GOOSE publisher 351_2 configuration initiated...\n");
 
-         // Breaker status (for device No ?) 0/1 or Open/Close.
+        // Trip status (for device No ?) 0/1 or NoTrip/Trip.
         // 25
         LinkedList_add(dataSetValues, MmsValue_newIntegerFromInt32(0));
         // LinkedList_add(dataSetValues, MmsValue_newBoolean(true));
 
         // Trip command (for device No ?) Trip/NoTrip.
         // LinkedList_add(dataSetValues, MmsValue_newIntegerFromInt32(0));
-         // NOTE: Disable for now might be enabled later.
+        // NOTE: Disable for now might be enabled later.
         // LinkedList_add(dataSetValues, MmsValue_newBoolean(false));
 
         // Trip command (for device No 351_2) 0/1 NoTrip/Trip.
@@ -813,6 +884,9 @@ main(int argc, char **argv)
         else if (strcmp(device_name, "451_2") == 0)
         {
             printf("451_2 GOOSE configuration initiated...\n");
+
+            GoosePublisher_setGoCbRef(publisher, "simple_451_2/PRO$CO$BCACSWI2");
+            GoosePublisher_setDataSetRef(publisher, "simple_451_2/PRO$BCACSWI2_DataSet");
         }
         else if (strcmp(device_name, "487B_2") == 0)
         {
@@ -824,6 +898,9 @@ main(int argc, char **argv)
         else if (strcmp(device_name, "351_2") == 0)
         {
             printf("351_2 GOOSE configuration initiated...\n");
+
+            GoosePublisher_setGoCbRef(publisher, "simple_351_2/PRO$CO$BCACSWI2");
+            GoosePublisher_setDataSetRef(publisher, "simple_351_2/PRO$BCACSWI2_DataSet");
         }
         else
         {
@@ -835,8 +912,26 @@ main(int argc, char **argv)
 
 
     GooseSubscriber_setListener(subscriber, gooseListener, NULL);
-
     GooseReceiver_addSubscriber(receiver, subscriber);
+
+    if (strcmp(device_name, "RTAC") == 0) {
+        GooseSubscriber_setListener(subscriber_2, gooseListener, NULL);
+        GooseSubscriber_setListener(subscriber_3, gooseListener, NULL);
+
+        GooseReceiver_addSubscriber(receiver, subscriber_2);
+        GooseReceiver_addSubscriber(receiver, subscriber_3);
+    }
+    else  if (strcmp(device_name, "487B_2") == 0) {
+        printf("487B_2 second subscriber\n");
+        GooseSubscriber_setListener(subscriber_2, gooseListener, NULL);
+        // GooseSubscriber_setListener(subscriber_3, gooseListener, NULL);
+
+        GooseReceiver_addSubscriber(receiver, subscriber_2);
+        // GooseReceiver_addSubscriber(receiver, subscriber_3);
+    }
+    
+    
+   
 
     GooseReceiver_start(receiver);
 
