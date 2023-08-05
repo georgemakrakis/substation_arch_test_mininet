@@ -60,6 +60,9 @@ static
 LinkedList dataSetValuesReceivedFrom651R_2;
 
 static
+LinkedList dataSetValuesReceivedFromRTAC;
+
+static
 LinkedList dataSetValuesReceivedFrom487B_2;
 
 static
@@ -74,11 +77,23 @@ LinkedList dataSetValuesTo787;
 static
 LinkedList dataSetValuesTo451_2;
 
+static
+LinkedList dataSetValuesTo487B_2;
+
+static
+LinkedList dataSetValuesTo351_2;
+
 static void
 sigint_handler(int signalId)
 {
     running = 0;
 }
+
+int updated_RTAC_451_2 = 0;
+int updated_651R_2 = 0;
+int updated_487B_2 = 0;
+int updated_351_2 = 0;
+int updated_451_2 = 0;
 
 static void
 gooseListener(GooseSubscriber subscriber, void* parameter)
@@ -100,8 +115,7 @@ gooseListener(GooseSubscriber subscriber, void* parameter)
     MmsValue_printToBuffer(values, buffer, 1024);
 
     printf("  allData: %s\n", buffer);
-
-    int updated = 0;
+   
 
     if (MmsValue_getType(values) == MMS_ARRAY) {
         // printf("received binary control command: ");
@@ -134,11 +148,30 @@ gooseListener(GooseSubscriber subscriber, void* parameter)
                     MmsValue* value = (MmsValue*) LinkedList_getData(prev_Val);
 
                     if (MmsValue_toInt32(value) != MmsValue_toInt32(elementValue)){
-                        updated = 1;
+                        updated_651R_2 = 1;
                     }
 
                     LinkedList_remove(dataSetValuesReceivedFrom651R_2, value);
                     LinkedList_add(dataSetValuesReceivedFrom651R_2, MmsValue_newIntegerFromInt32(MmsValue_toInt32(elementValue)));
+                }
+                else if (strcmp(GooseSubscriber_getGoCbRef(subscriber), "simple_451_2/PRO$CO$TEST_3") == 0){
+                    printf("VALUES FROM RTAC to 451_2\n");
+                    
+                    LinkedList prev_Val = LinkedList_get(dataSetValuesReceivedFromRTAC, i);
+
+                    MmsValue* value = (MmsValue*) LinkedList_getData(prev_Val);
+
+                    if (MmsValue_toInt32(value) != MmsValue_toInt32(elementValue)){
+                        updated_RTAC_451_2 = 1;
+                    }
+
+                    LinkedList_remove(dataSetValuesReceivedFromRTAC, value);
+                    LinkedList_add(dataSetValuesReceivedFromRTAC, MmsValue_newIntegerFromInt32(MmsValue_toInt32(elementValue)));
+
+                    // if( MmsValue_toInt32(elementValue) == 1){
+                    //     updated_RTAC_451_2 = 1;
+                    // }
+
                 }
                 else if (strcmp(GooseSubscriber_getGoCbRef(subscriber), "simple_487B_2/PRO$CO$BCACSWI2") == 0){
                     printf("VALUES FROM 487B\n");
@@ -148,7 +181,7 @@ gooseListener(GooseSubscriber subscriber, void* parameter)
                     MmsValue* value = (MmsValue*) LinkedList_getData(prev_Val);
 
                     if (MmsValue_toInt32(value) != MmsValue_toInt32(elementValue)){
-                        updated = 1;
+                        updated_487B_2 = 1;
                     }
 
                     LinkedList_remove(dataSetValuesReceivedFrom487B_2, value);
@@ -162,19 +195,22 @@ gooseListener(GooseSubscriber subscriber, void* parameter)
                     MmsValue* value = (MmsValue*) LinkedList_getData(prev_Val);
 
                     if (MmsValue_toInt32(value) != MmsValue_toInt32(elementValue)){
-                        updated = 1;
+                        updated_351_2 = 1;
                     }
 
                     LinkedList_remove(dataSetValuesReceivedFrom351_2, value);
                     LinkedList_add(dataSetValuesReceivedFrom351_2, MmsValue_newIntegerFromInt32(MmsValue_toInt32(elementValue)));
                 }
                 else if (strcmp(GooseSubscriber_getGoCbRef(subscriber), "simple_451_2/PRO$CO$BCACSWI2") == 0){
+
+                    printf("VALUES FROM 451\n");
+
                     LinkedList prev_Val = LinkedList_get(dataSetValuesReceivedFrom451_2, i);
 
                     MmsValue* value = (MmsValue*) LinkedList_getData(prev_Val);
 
                     if (MmsValue_toInt32(value) != MmsValue_toInt32(elementValue)){
-                        updated = 1;
+                        updated_451_2 = 1;
                     }
 
                     LinkedList_remove(dataSetValuesReceivedFrom451_2, value);
@@ -185,10 +221,12 @@ gooseListener(GooseSubscriber subscriber, void* parameter)
     }
 
     
+    // Messages from steps a) and b) to perform c), d) and e) 
+    if (strcmp(GooseSubscriber_getGoCbRef(subscriber), "simple_651R_2/PRO$CO$BCACSWI2") == 0
+        || strcmp(GooseSubscriber_getGoCbRef(subscriber), "simple_487B_2/PRO$CO$BCACSWI2") == 0
+        || strcmp(GooseSubscriber_getGoCbRef(subscriber), "simple_351_2/PRO$CO$BCACSWI2") == 0){
 
-    if (strcmp(GooseSubscriber_getGoCbRef(subscriber), "simple_651R_2/PRO$CO$BCACSWI2") == 0){
-
-        if(updated == 1){
+        if(updated_651R_2 == 1 && updated_487B_2 == 1 && updated_351_2 == 1){
             // Open 21
             LinkedList prev_Val = LinkedList_get(dataSetValuesTo787, 0);
             MmsValue* value = (MmsValue*) LinkedList_getData(prev_Val);
@@ -208,6 +246,53 @@ gooseListener(GooseSubscriber subscriber, void* parameter)
             value = (MmsValue*) LinkedList_getData(prev_Val);
             LinkedList_remove(dataSetValuesTo451_2, value);
             LinkedList_add(dataSetValuesTo451_2, MmsValue_newIntegerFromInt32(1));
+        }
+    }
+
+    // Messages from step e) to perform i)
+    if (strcmp(GooseSubscriber_getGoCbRef(subscriber), "simple_451_2/PRO$CO$TEST_3") == 0){
+
+        if(updated_RTAC_451_2 == 1){
+
+            printf("dataSetValuesTo487B_2 BEFORE values are: \n");
+            printLinkedList(dataSetValuesTo487B_2); 
+
+            // Close 22, 23, 24
+            LinkedList prev_Val = LinkedList_get(dataSetValuesTo487B_2, 0);
+            MmsValue* value = (MmsValue*) LinkedList_getData(prev_Val);
+            LinkedList_remove(dataSetValuesTo487B_2, value);
+            LinkedList_add(dataSetValuesTo487B_2, MmsValue_newIntegerFromInt32(1));
+
+            prev_Val = LinkedList_get(dataSetValuesTo487B_2, 0);
+            value = (MmsValue*) LinkedList_getData(prev_Val);
+            LinkedList_remove(dataSetValuesTo487B_2, value);
+            LinkedList_add(dataSetValuesTo487B_2, MmsValue_newIntegerFromInt32(1));
+
+            prev_Val = LinkedList_get(dataSetValuesTo487B_2, 0);
+            value = (MmsValue*) LinkedList_getData(prev_Val);
+            LinkedList_remove(dataSetValuesTo487B_2, value);
+            LinkedList_add(dataSetValuesTo487B_2, MmsValue_newIntegerFromInt32(1));
+
+            printf("dataSetValuesTo487B_2 AFTER values are: \n");
+            printLinkedList(dataSetValuesTo487B_2); 
+        }
+    }
+
+    if (strcmp(GooseSubscriber_getGoCbRef(subscriber), "simple_451_2/PRO$CO$BCACSWI2") == 0){
+
+        if(updated_487B_2 == 1){
+
+            printf("dataSetValuesTo351_2 BEFORE values are: \n");
+            printLinkedList(dataSetValuesTo351_2);
+
+            // Close 25
+            LinkedList prev_Val = LinkedList_get(dataSetValuesTo351_2, 0);
+            MmsValue* value = (MmsValue*) LinkedList_getData(prev_Val);
+            LinkedList_remove(dataSetValuesTo351_2, value);
+            LinkedList_add(dataSetValuesTo351_2, MmsValue_newIntegerFromInt32(1));
+
+            printf("dataSetValuesTo351_2 AFTER values are: \n");
+            printLinkedList(dataSetValuesTo351_2);
         }
     }
 
@@ -286,6 +371,7 @@ void *threadedPublisher(void *input)
     while (1) {
              // Now we also publish based on the defined interval
             if (GoosePublisher_publish(publisher, dataSetValues) == -1 
+                // || GoosePublisher_publish(publisher_2, dataSetValuesTo487B_2) == -1 
                 || GoosePublisher_publish(publisher_2, dataSetValuesTo787) == -1
                 || GoosePublisher_publish(publisher_3, dataSetValuesTo451_2) == -1) {
                     printf("Error sending message!\n");
@@ -362,6 +448,8 @@ void *threadedPublisher(void *input)
                 }
             }
             else if (strcmp(device_name, "451_2") == 0) {
+
+                dataSetValues = dataSetValuesTo487B_2;
                 
                 if( i == 0 || i == 1) {
                     publish_interval = min_interval;
@@ -513,10 +601,10 @@ void *threadedPublisher(void *input)
                 step_e_done = 0;
             }
 
-            if (step_b_done == 1){
-                i = 0;
-                step_b_done = 0;
-            }
+            // if (step_b_done == 1){
+            //     i = 0;
+            //     // step_b_done = 0;
+            // }
 
             // if (step_a_done == 1){
             //     i = 0;
@@ -658,12 +746,15 @@ main(int argc, char **argv)
     dataSetValues = LinkedList_create();
 
     dataSetValuesReceivedFrom651R_2 = LinkedList_create();
+    dataSetValuesReceivedFromRTAC = LinkedList_create();
     dataSetValuesReceivedFrom487B_2 = LinkedList_create();
     dataSetValuesReceivedFrom451_2 = LinkedList_create();
     dataSetValuesReceivedFrom351_2 = LinkedList_create();
 
     dataSetValuesTo787 = LinkedList_create();
     dataSetValuesTo451_2 = LinkedList_create();
+    dataSetValuesTo487B_2 = LinkedList_create();
+    dataSetValuesTo351_2 = LinkedList_create();
 
     CommParameters gooseCommParameters;
     CommParameters gooseCommParameters_2;
@@ -747,6 +838,7 @@ main(int argc, char **argv)
         // Trip command (for device No 351_2) 0/1 NoTrip/Trip.
         LinkedList_add(dataSetValuesReceivedFrom351_2,  MmsValue_newIntegerFromInt32(0));
 
+        LinkedList_add(dataSetValuesTo351_2,  MmsValue_newIntegerFromInt32(0));
     } 
     // NOTE: JUST FOR TESTING
     else if (strcmp(device_name, "651R_2") == 0)
@@ -797,6 +889,14 @@ main(int argc, char **argv)
         gooseCommParameters.vlanId = 0;
         gooseCommParameters.vlanPriority = 4;
 
+        LinkedList_add(dataSetValuesTo487B_2, MmsValue_newIntegerFromInt32(0));
+        LinkedList_add(dataSetValuesTo487B_2, MmsValue_newIntegerFromInt32(0));
+        LinkedList_add(dataSetValuesTo487B_2, MmsValue_newIntegerFromInt32(0));
+
+        // RTAC to 451-2
+        LinkedList_add(dataSetValuesReceivedFromRTAC, MmsValue_newIntegerFromInt32(0));
+        LinkedList_add(dataSetValuesReceivedFromRTAC, MmsValue_newIntegerFromInt32(0));
+        
     }
     else if (strcmp(device_name, "487B_2") == 0)
     {
@@ -831,6 +931,8 @@ main(int argc, char **argv)
 
         // NOTE: No need for 487B to receive message from 351 (for now?)
         // LinkedList_add(dataSetValuesReceivedFrom351_2, MmsValue_newIntegerFromInt32(0));
+
+        LinkedList_add(dataSetValuesTo351_2, MmsValue_newIntegerFromInt32(0));
     }
     else if (strcmp(device_name, "351_2") == 0)
     {
