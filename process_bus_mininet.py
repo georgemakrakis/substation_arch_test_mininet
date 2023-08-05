@@ -89,7 +89,7 @@ class process_bus( Topo ):
             self.addLink( IED, switch1 )
 
         # Assigning IDS as well
-        self.IDSs["IDS_1"].append(f"192.168.1.150/24")
+        self.IDSs["IDS_1"].append(f"192.168.1.120/24")
         self.IDSs["IDS_1"].append(f"00:00:00:00:11:11")
 
         IDS = self.addHost( "IDS_1", ip=self.IDSs["IDS_1"][0], mac=self.IDSs["IDS_1"][1] )

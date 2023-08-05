@@ -63,6 +63,9 @@ static
 LinkedList dataSetValuesReceivedFrom487B_2;
 
 static
+LinkedList dataSetValuesReceivedFrom351_2;
+
+static
 LinkedList dataSetValuesReceivedFrom451_2;
 
 static
@@ -138,6 +141,8 @@ gooseListener(GooseSubscriber subscriber, void* parameter)
                     LinkedList_add(dataSetValuesReceivedFrom651R_2, MmsValue_newIntegerFromInt32(MmsValue_toInt32(elementValue)));
                 }
                 else if (strcmp(GooseSubscriber_getGoCbRef(subscriber), "simple_487B_2/PRO$CO$BCACSWI2") == 0){
+                    printf("VALUES FROM 487B\n");
+
                     LinkedList prev_Val = LinkedList_get(dataSetValuesReceivedFrom487B_2, i);
 
                     MmsValue* value = (MmsValue*) LinkedList_getData(prev_Val);
@@ -148,6 +153,20 @@ gooseListener(GooseSubscriber subscriber, void* parameter)
 
                     LinkedList_remove(dataSetValuesReceivedFrom487B_2, value);
                     LinkedList_add(dataSetValuesReceivedFrom487B_2, MmsValue_newIntegerFromInt32(MmsValue_toInt32(elementValue)));
+                }
+                else if (strcmp(GooseSubscriber_getGoCbRef(subscriber), "simple_351_2/PRO$CO$BCACSWI2") == 0){
+                    printf("VALUES FROM 351\n");
+                    
+                    LinkedList prev_Val = LinkedList_get(dataSetValuesReceivedFrom351_2, i);
+
+                    MmsValue* value = (MmsValue*) LinkedList_getData(prev_Val);
+
+                    if (MmsValue_toInt32(value) != MmsValue_toInt32(elementValue)){
+                        updated = 1;
+                    }
+
+                    LinkedList_remove(dataSetValuesReceivedFrom351_2, value);
+                    LinkedList_add(dataSetValuesReceivedFrom351_2, MmsValue_newIntegerFromInt32(MmsValue_toInt32(elementValue)));
                 }
                 else if (strcmp(GooseSubscriber_getGoCbRef(subscriber), "simple_451_2/PRO$CO$BCACSWI2") == 0){
                     LinkedList prev_Val = LinkedList_get(dataSetValuesReceivedFrom451_2, i);
@@ -200,8 +219,10 @@ gooseListener(GooseSubscriber subscriber, void* parameter)
 
     gettimeofday(&tv, NULL);
 
-    millisec = lrint(tv.tv_usec/1000.0); // Round to nearest millisec
-    if (millisec>=1000) { // Allow for rounding up to nearest second
+    // Round to nearest millisec
+    millisec = lrint(tv.tv_usec/1000.0);
+    // Allow for rounding up to nearest second
+    if (millisec>=1000) {
         millisec -=1000;
         tv.tv_sec++;
     }
@@ -612,15 +633,10 @@ main(int argc, char **argv)
         printf("GOOSE 487B_2 configuration initiated...\n");
 
         // TODO: After testing rename this to just "subscriber"
-        subscriber = GooseSubscriber_create("simple_351_2/PRO$CO$BCACSWI2", NULL);
-        uint8_t dstMac[6] = {0x01,0x0c,0xcd,0x01,0x00,0x06};
+        subscriber = GooseSubscriber_create("simple_451_2/PRO$CO$BCACSWI2", NULL);
+        uint8_t dstMac[6] = {0x01,0x0c,0xcd,0x01,0x00,0x07};
         GooseSubscriber_setDstMac(subscriber, dstMac);
-        GooseSubscriber_setAppId(subscriber, 1006);
-
-        subscriber_2 = GooseSubscriber_create("simple_451_2/PRO$CO$BCACSWI2", NULL);
-        dstMac[5] = 0x07;
-        GooseSubscriber_setDstMac(subscriber_2, dstMac);
-        GooseSubscriber_setAppId(subscriber_2, 1007);
+        GooseSubscriber_setAppId(subscriber, 1007);
     }
     else if (strcmp(device_name, "351_2") == 0)
     {
@@ -640,9 +656,12 @@ main(int argc, char **argv)
 
     //.. and now the publisher
     dataSetValues = LinkedList_create();
+
     dataSetValuesReceivedFrom651R_2 = LinkedList_create();
     dataSetValuesReceivedFrom487B_2 = LinkedList_create();
     dataSetValuesReceivedFrom451_2 = LinkedList_create();
+    dataSetValuesReceivedFrom351_2 = LinkedList_create();
+
     dataSetValuesTo787 = LinkedList_create();
     dataSetValuesTo451_2 = LinkedList_create();
 
@@ -720,10 +739,13 @@ main(int argc, char **argv)
         gooseCommParameters_3.vlanPriority = 4;
 
         
+        // Trip command (for device No 487B_2) 0/1 NoTrip/Trip.
+        LinkedList_add(dataSetValuesReceivedFrom487B_2,  MmsValue_newIntegerFromInt32(0));
+        LinkedList_add(dataSetValuesReceivedFrom487B_2,  MmsValue_newIntegerFromInt32(0));
+        LinkedList_add(dataSetValuesReceivedFrom487B_2,  MmsValue_newIntegerFromInt32(0));
+
         // Trip command (for device No 351_2) 0/1 NoTrip/Trip.
-        LinkedList_add(dataSetValuesReceivedFrom487B_2,  MmsValue_newIntegerFromInt32(0));
-        LinkedList_add(dataSetValuesReceivedFrom487B_2,  MmsValue_newIntegerFromInt32(0));
-        LinkedList_add(dataSetValuesReceivedFrom487B_2,  MmsValue_newIntegerFromInt32(0));
+        LinkedList_add(dataSetValuesReceivedFrom351_2,  MmsValue_newIntegerFromInt32(0));
 
     } 
     // NOTE: JUST FOR TESTING
@@ -806,6 +828,9 @@ main(int argc, char **argv)
         gooseCommParameters.dstAddress[5] = 0x05;
         gooseCommParameters.vlanId = 0;
         gooseCommParameters.vlanPriority = 4;
+
+        // NOTE: No need for 487B to receive message from 351 (for now?)
+        // LinkedList_add(dataSetValuesReceivedFrom351_2, MmsValue_newIntegerFromInt32(0));
     }
     else if (strcmp(device_name, "351_2") == 0)
     {
@@ -921,14 +946,14 @@ main(int argc, char **argv)
         GooseReceiver_addSubscriber(receiver, subscriber_2);
         GooseReceiver_addSubscriber(receiver, subscriber_3);
     }
-    else  if (strcmp(device_name, "487B_2") == 0) {
-        printf("487B_2 second subscriber\n");
-        GooseSubscriber_setListener(subscriber_2, gooseListener, NULL);
-        // GooseSubscriber_setListener(subscriber_3, gooseListener, NULL);
+    // else  if (strcmp(device_name, "487B_2") == 0) {
+    //     printf("487B_2 second subscriber\n");
+    //     GooseSubscriber_setListener(subscriber_2, gooseListener, NULL);
+    //     // GooseSubscriber_setListener(subscriber_3, gooseListener, NULL);
 
-        GooseReceiver_addSubscriber(receiver, subscriber_2);
-        // GooseReceiver_addSubscriber(receiver, subscriber_3);
-    }
+    //     GooseReceiver_addSubscriber(receiver, subscriber_2);
+    //     // GooseReceiver_addSubscriber(receiver, subscriber_3);
+    // }
     
     
    
