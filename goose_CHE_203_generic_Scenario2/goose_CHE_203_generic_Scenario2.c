@@ -142,7 +142,8 @@ gooseListener(GooseSubscriber subscriber, void* parameter)
                 // TODO: Can that be done outside the loop with direct assignment somehow?
                 // TODO: Shall we also move the if statement somewhere outside the loop?
                 if (strcmp(GooseSubscriber_getGoCbRef(subscriber), "simple_651R_2/PRO$CO$BCACSWI2") == 0){
-                        
+                    printf("VALUES FROM 651R_2\n");
+
                     LinkedList prev_Val = LinkedList_get(dataSetValuesReceivedFrom651R_2, i);
 
                     MmsValue* value = (MmsValue*) LinkedList_getData(prev_Val);
@@ -233,8 +234,8 @@ gooseListener(GooseSubscriber subscriber, void* parameter)
             LinkedList_remove(dataSetValuesTo787, value);
             LinkedList_add(dataSetValuesTo787, MmsValue_newIntegerFromInt32(0));
 
-            // printf("dataSetValuesTo451_2 BEFORE values are: \n");
-            // printLinkedList(dataSetValuesTo451_2); 
+            printf("dataSetValuesTo451_2 BEFORE values are: \n");
+            printLinkedList(dataSetValuesTo451_2); 
 
             // Close 111 and 112
             prev_Val = LinkedList_get(dataSetValuesTo451_2, 0);
@@ -246,6 +247,9 @@ gooseListener(GooseSubscriber subscriber, void* parameter)
             value = (MmsValue*) LinkedList_getData(prev_Val);
             LinkedList_remove(dataSetValuesTo451_2, value);
             LinkedList_add(dataSetValuesTo451_2, MmsValue_newIntegerFromInt32(1));
+
+            printf("dataSetValuesTo451_2 AFTER values are: \n");
+            printLinkedList(dataSetValuesTo451_2); 
         }
     }
 
@@ -253,9 +257,6 @@ gooseListener(GooseSubscriber subscriber, void* parameter)
     if (strcmp(GooseSubscriber_getGoCbRef(subscriber), "simple_451_2/PRO$CO$TEST_3") == 0){
 
         if(updated_RTAC_451_2 == 1){
-
-            printf("dataSetValuesTo487B_2 BEFORE values are: \n");
-            printLinkedList(dataSetValuesTo487B_2); 
 
             // Close 22, 23, 24
             LinkedList prev_Val = LinkedList_get(dataSetValuesTo487B_2, 0);
@@ -273,8 +274,8 @@ gooseListener(GooseSubscriber subscriber, void* parameter)
             LinkedList_remove(dataSetValuesTo487B_2, value);
             LinkedList_add(dataSetValuesTo487B_2, MmsValue_newIntegerFromInt32(1));
 
-            printf("dataSetValuesTo487B_2 AFTER values are: \n");
-            printLinkedList(dataSetValuesTo487B_2); 
+            // printf("dataSetValuesTo487B_2 AFTER values are: \n");
+            // printLinkedList(dataSetValuesTo487B_2); 
         }
     }
 
@@ -449,7 +450,24 @@ void *threadedPublisher(void *input)
             }
             else if (strcmp(device_name, "451_2") == 0) {
 
-                dataSetValues = dataSetValuesTo487B_2;
+                // dataSetValues = dataSetValuesTo487B_2;
+
+                for(int j=0; j<LinkedList_size(dataSetValues); j++){
+
+                    LinkedList prev_Val = LinkedList_get(dataSetValues, j);
+                    LinkedList next_Val = LinkedList_get(dataSetValuesTo487B_2, j);
+
+                    MmsValue* value = (MmsValue*) LinkedList_getData(prev_Val);
+                    MmsValue* value_Next = (MmsValue*) LinkedList_getData(next_Val);
+
+                    LinkedList_remove(dataSetValues, value);
+                    LinkedList_add(dataSetValues, MmsValue_newIntegerFromInt32(MmsValue_toInt32(value_Next)));
+                }
+
+                if(updated_RTAC_451_2 == 1) {
+                    GoosePublisher_increaseStNum(publisher);
+                    updated_RTAC_451_2 = 0;
+                }
                 
                 if( i == 0 || i == 1) {
                     publish_interval = min_interval;
@@ -585,7 +603,15 @@ void *threadedPublisher(void *input)
                 // Open 112
                 LinkedList_add(dataSetValuesTo451_2, MmsValue_newIntegerFromInt32(0));
 
+                if(updated_651R_2 == 1 && updated_487B_2 && updated_351_2) {
+                    updated_651R_2 = 0;
+                    updated_487B_2 = 0;
+                    updated_351_2 = 0;
+                }
+
                 GoosePublisher_increaseStNum(publisher);
+                GoosePublisher_increaseStNum(publisher_2);
+                GoosePublisher_increaseStNum(publisher_3);
                 publish_interval = 0;
 
                 step_e_done = 1;
