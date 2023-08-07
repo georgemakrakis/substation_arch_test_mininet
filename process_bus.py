@@ -57,7 +57,8 @@ class process_bus(app_manager.RyuApp):
         CONF.register_opts([
             cfg.IntOpt('monitor', default=0, help = ('Enable monitor')),
             cfg.IntOpt('period', default=10, help = ('Period of monitoring')),
-            cfg.IntOpt('snort', default=0, help = ('Enabling snort communication'))
+            cfg.IntOpt('snort', default=0, help = ('Enabling snort communication')),
+            cfg.IntOpt('scenario', default=1, help = ('Choosing scenario'))
         ])
         
         print('monitor = {}'.format(CONF.monitor))
@@ -69,6 +70,7 @@ class process_bus(app_manager.RyuApp):
         self.group_stats = []
         wsgi.register(ProcessBussController,
                       {processBus_app_instance_name: self})
+        
         if (CONF.monitor and CONF.period and CONF.monitor == 1):
             self.monitor_thread = hub.spawn(self._monitor, CONF.period)
 
@@ -82,6 +84,10 @@ class process_bus(app_manager.RyuApp):
 
             self.snort.set_config(socket_config)
             self.snort.start_socket_server()
+
+        if (CONF.scenario):
+            self.scenario = CONF.scenario
+
 
     def packet_print(self, pkt):
 
@@ -446,8 +452,8 @@ class process_bus(app_manager.RyuApp):
 
         # GOOSE Multicast list allowed comms based on multicast address and switch port that can reach
         # TODO: Maybe need to make this more granular to include also src MAC address?
-        goose_list = {
-            # 651R_2 --> RTAC
+        goose_list_scenario_1 = {
+            # For 651R_2 --> RTAC
             "01:0c:cd:01:00:02" : [10], 
             # For RTAC --> 651R_2
             "01:0c:cd:01:00:01" : [9], 
@@ -458,8 +464,39 @@ class process_bus(app_manager.RyuApp):
             #("01:0c:cd:01:00:01", [10, 5])
             #("01:0c:cd:01:00:01", 16)
         }
+
+        goose_list_scenario_2 = {
+            # For 651R_2 --> RTAC
+            "01:0c:cd:01:00:02" : [10], 
+            
+            # For 487B --> RTAC
+            "01:0c:cd:01:00:05" : [10],
+            # For 351_2 --> RTAC
+            "01:0c:cd:01:00:06" : [10],
+            
+            # For RTAC --> 651R_2
+            "01:0c:cd:01:00:01" : [9], 
+            # For RTAC --> 787
+            "01:0c:cd:01:00:03" : [7],
+            # For RTAC --> 451
+            "01:0c:cd:01:00:04" : [2],
+
+            # For 451 --> 487B
+            "01:0c:cd:01:00:07" : [5],
+            # For 487B --> 351_2
+            "01:0c:cd:01:00:05" : [3],
+            
+            #("01:0c:cd:01:00:01", [10, 5])
+            #("01:0c:cd:01:00:01", 16)
+        }
+
         #in_goose_list = [tuple for tuple in goose_list if any(dst == i for i in tuple)]
-        
+
+        if self.scenario == 1:
+            goose_list = goose_list_scenario_1
+        elif self.scenario == 1:
+            goose_list = goose_list_scenario_2
+            
         in_goose_list = []
 
         try:
@@ -470,7 +507,7 @@ class process_bus(app_manager.RyuApp):
             # TODO: Return some sort of error and/or log this action
 
         if in_goose_list:
-            match = parser.OFPMatch(eth_dst=dst)
+            match = parser.OFPMatch(eth_src=src, eth_dst=dst)
             actions = [parser.OFPActionGroup(group_id=50)]
 
             for port in in_goose_list:
