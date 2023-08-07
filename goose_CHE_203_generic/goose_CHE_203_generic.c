@@ -234,8 +234,8 @@ void *threadedPublisher(void *input)
     while (1) {
             // Now we also publish based on the defined interval
             if (GoosePublisher_publish(publisher, dataSetValues) == -1 
-                || GoosePublisher_publish(publisher_2, dataSetValuesTo787) == -1
-                || GoosePublisher_publish(publisher_3, dataSetValuesTo451_2) == -1) {
+                || (publisher_2  != NULL && GoosePublisher_publish(publisher_2, dataSetValuesTo787) == -1)
+                || (publisher_3  != NULL && GoosePublisher_publish(publisher_3, dataSetValuesTo451_2) == -1)) {
                     printf("Error sending message!\n");
             }
             printf("Publishing...\n");
@@ -648,6 +648,13 @@ main(int argc, char **argv)
         }
     }
 
+    if (strcmp(device_name, "651R_2") == 0 ||
+        strcmp(device_name, "787_2") == 0 ||
+        strcmp(device_name, "451_2") == 0 || ) {
+            
+        publisher_2 = NULL;
+        publisher_3 = NULL;
+    }
 
 
     GooseSubscriber_setListener(subscriber, gooseListener, NULL);

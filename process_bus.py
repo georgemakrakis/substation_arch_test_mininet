@@ -445,8 +445,17 @@ class process_bus(app_manager.RyuApp):
             self.logger.info("Possibly with protocol GOOSE")
 
         # GOOSE Multicast list allowed comms based on multicast address and switch port that can reach
+        # TODO: Maybe need to make this more granular to include also src MAC address?
         goose_list = {
-            "01:0c:cd:01:00:01" : [10, 5]
+            # 651R_2 --> RTAC
+            "01:0c:cd:01:00:02" : [10], 
+            # For RTAC --> 651R_2
+            "01:0c:cd:01:00:01" : [9], 
+            # For RTAC --> 787
+            "01:0c:cd:01:00:03" : [7],
+            # For RTAC --> 451
+            "01:0c:cd:01:00:04" : [2]
+            #("01:0c:cd:01:00:01", [10, 5])
             #("01:0c:cd:01:00:01", 16)
         }
         #in_goose_list = [tuple for tuple in goose_list if any(dst == i for i in tuple)]
@@ -470,7 +479,7 @@ class process_bus(app_manager.RyuApp):
             inst = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS,
                                              actions)]
             
-            self.add_flow(datapath=datapath, priority=1, command=command, match=match, inst=inst, waiters=waiters, log_action="packet_in", table_id=1, timeout=0)
+            self.add_flow(datapath=datapath, priority=100, command=command, match=match, inst=inst, waiters=waiters, log_action="packet_in", table_id=1, timeout=0)
 
             data = None
             if msg.buffer_id == ofproto.OFP_NO_BUFFER:
