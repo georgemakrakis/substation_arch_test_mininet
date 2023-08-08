@@ -278,6 +278,15 @@ void *threadedPublisher(void *input)
     if (strcmp(device_name, "651R_2") == 0) {
         max_interval = 100;
     }
+    else  if (strcmp(device_name, "787_2") == 0) {
+        min_interval = 10;
+        max_interval = 100;
+    }
+    else  if (strcmp(device_name, "451_1") == 0) {
+        max_interval = 1000;
+    }
+
+
     // int max_interval = 5000;
     
     // NOTE: Used as a simple condition to increase the StNum
@@ -286,6 +295,9 @@ void *threadedPublisher(void *input)
 
     int step_e_done = 0;
     int step_a_done = 0;
+
+    // That seems to be the case so far for the initial message.
+    GoosePublisher_setTimeAllowedToLive(publisher, 3 * min_interval);
 
     while (1) {
             // Now we also publish based on the defined interval
@@ -320,11 +332,11 @@ void *threadedPublisher(void *input)
             if (strcmp(device_name, "651R_2") == 0) {
 
                 if( i == 0 || i == 1) {
-                    GoosePublisher_setTimeAllowedToLive(publisher, 2 * min_interval);
+                    GoosePublisher_setTimeAllowedToLive(publisher, 3 * min_interval);
                     publish_interval = min_interval;
                 }
                 else if( i == 2) {
-                    GoosePublisher_setTimeAllowedToLive(publisher, 2 * min_interval);
+                    GoosePublisher_setTimeAllowedToLive(publisher, 2 * max_interval);
                     publish_interval = 2 * publish_interval;
                 }
                 else {
@@ -347,22 +359,41 @@ void *threadedPublisher(void *input)
             }
             else if (strcmp(device_name, "787_2") == 0) {
                 
-                if( i == 0) {
+                if (i == 0 && publish_interval < max_interval) {
                     publish_interval = min_interval;
                     GoosePublisher_setTimeAllowedToLive(publisher, 3 * publish_interval);
                 }
-                if (i != 0 && publish_interval != max_interval){
+                else if (i != 0 && publish_interval < max_interval){
                     publish_interval = 2 * publish_interval;
-                    GoosePublisher_setTimeAllowedToLive(publisher, 3 * publish_interval);
+                    if ( publish_interval >  max_interval){
+                        publish_interval = max_interval;
+                        GoosePublisher_setTimeAllowedToLive(publisher, 2 * max_interval);
+                    }
+                    else {
+                        GoosePublisher_setTimeAllowedToLive(publisher, 3 * publish_interval);
+                    }
+                    // GoosePublisher_setTimeAllowedToLive(publisher, 3 * publish_interval);
                 }
-                else if (i != 0 && publish_interval == max_interval){
+                else if (i != 0 && publish_interval >= max_interval){
                     publish_interval = max_interval;
-                    GoosePublisher_setTimeAllowedToLive(publisher, 2 * publish_interval);
+                    GoosePublisher_setTimeAllowedToLive(publisher, 2 * max_interval);
                 }
 
             }
-             else if (strcmp(device_name, "451_2") == 0) {
-
+            else if (strcmp(device_name, "451_2") == 0) {
+                
+                if( i == 0 || i == 1) {
+                    GoosePublisher_setTimeAllowedToLive(publisher, 3 * min_interval);
+                    publish_interval = min_interval;
+                }
+                else if( i == 2) {
+                    GoosePublisher_setTimeAllowedToLive(publisher, 2 * max_interval);
+                    publish_interval = 2 * publish_interval;
+                }
+                else {
+                    GoosePublisher_setTimeAllowedToLive(publisher, 2 * max_interval);
+                    publish_interval = max_interval;
+                }
             }
             
             // .. then us a condition to change something to start from the
@@ -685,10 +716,38 @@ main(int argc, char **argv)
     else if (strcmp(device_name, "787_2") == 0)
     {
         printf("GOOSE publisher 787_2 configuration initiated...\n");
+
+        // 21
+        LinkedList_add(dataSetValues, MmsValue_newIntegerFromInt32(0));
+
+        gooseCommParameters.appId = 1008;
+        gooseCommParameters.dstAddress[0] = 0x01;
+        gooseCommParameters.dstAddress[1] = 0x0c;
+        gooseCommParameters.dstAddress[2] = 0xcd;
+        gooseCommParameters.dstAddress[3] = 0x01;
+        gooseCommParameters.dstAddress[4] = 0x00;
+        gooseCommParameters.dstAddress[5] = 0x08;
+        gooseCommParameters.vlanId = 0;
+        gooseCommParameters.vlanPriority = 4;
     }
     else if (strcmp(device_name, "451_2") == 0)
     {
         printf("GOOSE publisher 451_2 configuration initiated...\n");
+
+        // 112
+        LinkedList_add(dataSetValues, MmsValue_newIntegerFromInt32(0));
+        // 111
+        LinkedList_add(dataSetValues, MmsValue_newIntegerFromInt32(0));
+
+        gooseCommParameters.appId = 1007;
+        gooseCommParameters.dstAddress[0] = 0x01;
+        gooseCommParameters.dstAddress[1] = 0x0c;
+        gooseCommParameters.dstAddress[2] = 0xcd;
+        gooseCommParameters.dstAddress[3] = 0x01;
+        gooseCommParameters.dstAddress[4] = 0x00;
+        gooseCommParameters.dstAddress[5] = 0x07;
+        gooseCommParameters.vlanId = 0;
+        gooseCommParameters.vlanPriority = 4;
     }
     else
     {
@@ -709,7 +768,7 @@ main(int argc, char **argv)
 
     if (publisher) {
         GoosePublisher_setConfRev(publisher, 1);
-        GoosePublisher_setTimeAllowedToLive(publisher, 500);
+        // GoosePublisher_setTimeAllowedToLive(publisher, 500);
 
         if (strcmp(device_name, "RTAC") == 0) 
         {
@@ -737,10 +796,16 @@ main(int argc, char **argv)
         else if (strcmp(device_name, "787_2") == 0)
         {
             printf("787_2 GOOSE configuration initiated...\n");
+            
+            GoosePublisher_setGoCbRef(publisher, "simple_787_2/PRO$CO$BCACSWI2");
+            GoosePublisher_setDataSetRef(publisher, "simple_787_2/PRO$BCACSWI2_DataSet");
         }
         else if (strcmp(device_name, "451_2") == 0)
         {
             printf("451_2 GOOSE configuration initiated...\n");
+
+            GoosePublisher_setGoCbRef(publisher, "simple_451_2/PRO$CO$BCACSWI2");
+            GoosePublisher_setDataSetRef(publisher, "simple_451_2/PRO$BCACSWI2_DataSet");
         }
         else
         {

@@ -405,13 +405,16 @@ void *threadedPublisher(void *input)
             // The different Transmit Interval algorithms for each device.
             if (strcmp(device_name, "651R_2") == 0) {
 
-                if( i == 0 || i == 1) {
+                 if( i == 0 || i == 1) {
+                    GoosePublisher_setTimeAllowedToLive(publisher, 3 * min_interval);
                     publish_interval = min_interval;
                 }
                 else if( i == 2) {
+                    GoosePublisher_setTimeAllowedToLive(publisher, 2 * max_interval);
                     publish_interval = 2 * publish_interval;
                 }
                 else {
+                    GoosePublisher_setTimeAllowedToLive(publisher, 2 * max_interval);
                     publish_interval = max_interval;
                 }
             }
@@ -431,12 +434,15 @@ void *threadedPublisher(void *input)
             else if (strcmp(device_name, "487B_2") == 0) {
                 
                 if( i == 0 || i == 1) {
+                     GoosePublisher_setTimeAllowedToLive(publisher, 2 * min_interval);
                     publish_interval = min_interval;
                 }
                 else if( i == 2) {
+                    GoosePublisher_setTimeAllowedToLive(publisher, 2 * max_interval);
                     publish_interval = 2 * publish_interval;
                 }
                 else {
+                    GoosePublisher_setTimeAllowedToLive(publisher, 2 * max_interval);
                     publish_interval = max_interval;
                 }
             }
@@ -444,13 +450,39 @@ void *threadedPublisher(void *input)
                 
                 if( i == 0 || i == 1) {
                     publish_interval = min_interval;
+                    GoosePublisher_setTimeAllowedToLive(publisher, 3 * min_interval);
                 }
                 else if( i == 2) {
                     publish_interval = 2 * publish_interval;
+                    GoosePublisher_setTimeAllowedToLive(publisher, 2 * max_interval);
                 }
                 else {
                     publish_interval = max_interval;
+                    GoosePublisher_setTimeAllowedToLive(publisher, 2 * max_interval);
                 }
+            }
+             else if (strcmp(device_name, "787_2") == 0) {
+                
+                 if (i == 0 && publish_interval < max_interval) {
+                    publish_interval = min_interval;
+                    GoosePublisher_setTimeAllowedToLive(publisher, 3 * publish_interval);
+                }
+                else if (i != 0 && publish_interval < max_interval){
+                    publish_interval = 2 * publish_interval;
+                    if ( publish_interval >  max_interval){
+                        publish_interval = max_interval;
+                        GoosePublisher_setTimeAllowedToLive(publisher, 2 * max_interval);
+                    }
+                    else {
+                        GoosePublisher_setTimeAllowedToLive(publisher, 3 * publish_interval);
+                    }
+                    // GoosePublisher_setTimeAllowedToLive(publisher, 3 * publish_interval);
+                }
+                else if (i != 0 && publish_interval >= max_interval){
+                    publish_interval = max_interval;
+                    GoosePublisher_setTimeAllowedToLive(publisher, 2 * max_interval);
+                }
+
             }
             else if (strcmp(device_name, "451_2") == 0) {
 
@@ -474,12 +506,15 @@ void *threadedPublisher(void *input)
                 }
                 
                 if( i == 0 || i == 1) {
+                    GoosePublisher_setTimeAllowedToLive(publisher, 2 * min_interval);
                     publish_interval = min_interval;
                 }
                 else if( i == 2) {
+                    GoosePublisher_setTimeAllowedToLive(publisher, 2 * min_interval);
                     publish_interval = 2 * publish_interval;
                 }
                 else {
+                    GoosePublisher_setTimeAllowedToLive(publisher, 2 * max_interval);
                     publish_interval = max_interval;
                 }
             }
@@ -899,6 +934,19 @@ main(int argc, char **argv)
     else if (strcmp(device_name, "787_2") == 0)
     {
         printf("GOOSE publisher 787_2 configuration initiated...\n");
+
+        // 21
+        LinkedList_add(dataSetValues, MmsValue_newIntegerFromInt32(0));
+
+        gooseCommParameters.appId = 1008;
+        gooseCommParameters.dstAddress[0] = 0x01;
+        gooseCommParameters.dstAddress[1] = 0x0c;
+        gooseCommParameters.dstAddress[2] = 0xcd;
+        gooseCommParameters.dstAddress[3] = 0x01;
+        gooseCommParameters.dstAddress[4] = 0x00;
+        gooseCommParameters.dstAddress[5] = 0x08;
+        gooseCommParameters.vlanId = 0;
+        gooseCommParameters.vlanPriority = 4;
     }
     else if (strcmp(device_name, "451_2") == 0)
     {
