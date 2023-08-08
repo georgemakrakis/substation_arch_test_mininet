@@ -320,12 +320,15 @@ void *threadedPublisher(void *input)
             if (strcmp(device_name, "651R_2") == 0) {
 
                 if( i == 0 || i == 1) {
+                    GoosePublisher_setTimeAllowedToLive(publisher, 2 * min_interval);
                     publish_interval = min_interval;
                 }
                 else if( i == 2) {
+                    GoosePublisher_setTimeAllowedToLive(publisher, 2 * min_interval);
                     publish_interval = 2 * publish_interval;
                 }
                 else {
+                    GoosePublisher_setTimeAllowedToLive(publisher, 2 * max_interval);
                     publish_interval = max_interval;
                 }
             }
@@ -341,6 +344,25 @@ void *threadedPublisher(void *input)
                 else {
                     publish_interval = max_interval;
                 }
+            }
+            else if (strcmp(device_name, "787_2") == 0) {
+                
+                if( i == 0) {
+                    publish_interval = min_interval;
+                    GoosePublisher_setTimeAllowedToLive(publisher, 3 * publish_interval);
+                }
+                if (i != 0 && publish_interval != max_interval){
+                    publish_interval = 2 * publish_interval;
+                    GoosePublisher_setTimeAllowedToLive(publisher, 3 * publish_interval);
+                }
+                else if (i != 0 && publish_interval == max_interval){
+                    publish_interval = max_interval;
+                    GoosePublisher_setTimeAllowedToLive(publisher, 2 * publish_interval);
+                }
+
+            }
+             else if (strcmp(device_name, "451_2") == 0) {
+
             }
             
             // .. then us a condition to change something to start from the
