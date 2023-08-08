@@ -449,6 +449,11 @@ class process_bus(app_manager.RyuApp):
 
         if eth.ethertype == ether_types.ETH_TYPE_8021Q:
             self.logger.info("Possibly with protocol GOOSE")
+            self.logger.info(eth.ethertype)
+
+        # That is GOOSE (0x88B8) in decimal
+        if eth.ethertype == 35000:
+            self.logger.info("with protocol GOOSE")
 
         # GOOSE Multicast list allowed comms based on multicast address and switch port that can reach
         # TODO: Maybe need to make this more granular to include also src MAC address?

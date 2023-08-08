@@ -10,6 +10,8 @@
 
 #include <pthread.h>
 #include <unistd.h>
+#include <dirent.h>
+#include <errno.h>
 
 #include "mms_value.h"
 #include "goose_publisher.h"
@@ -51,6 +53,41 @@ void printLinkedList(LinkedList list){
     }
 }
 
+int fileLog(char *message, char * buffer_time){
+
+    FILE *log_file;
+    // TODO: Pass that as parameter
+    DIR* dir = opendir("./goose_CHE_203_generic/logs_dir");
+
+    // printf("At %s.%03d\n", buffer_time, millisec);
+    char *log_timestamp = (char*)malloc(26 * sizeof(char));
+    sprintf(log_timestamp, "%s.log", buffer_time);
+
+    if (dir) {
+        closedir(dir);
+    } else if (ENOENT == errno) {
+        printf("Directory does not exist, exiting ...");
+        return 1;
+    } else {
+        printf("Other directory error ...");
+        return 1;
+    }
+
+    char *log_path = (char*)malloc(60 * sizeof(char));
+    sprintf(log_path, "%s/%s", "./goose_CHE_203_generic/logs_dir", log_timestamp);
+
+    log_file = fopen(log_path, "a+"); // a+ (create + append) option will allow appending which is useful in a log file
+    
+    if (log_file == NULL) { 
+        // Something is wrong
+        return 1;
+    }
+    fprintf(log_file, "%s\n", message);
+    fclose(log_file);
+
+    return 0;
+}
+
 static int running = 1;
 
 static 
@@ -64,6 +101,8 @@ LinkedList dataSetValuesTo787;
 
 static
 LinkedList dataSetValuesTo451_2;
+
+int buffer_time[26];
 
 static void
 sigint_handler(int signalId)
@@ -222,6 +261,9 @@ void *threadedPublisher(void *input)
     int publish_interval = 0;
     // int max_interval = 100;
     int max_interval = 1000;
+    if (strcmp(device_name, "651R_2") == 0) {
+        max_interval = 100;
+    }
     // int max_interval = 5000;
     
     // NOTE: Used as a simple condition to increase the StNum
@@ -273,6 +315,7 @@ void *threadedPublisher(void *input)
                     publish_interval = max_interval;
                 }
             }
+            // NOTE: There is no specific mention of intervals in the manual for RTAC
             else if (strcmp(device_name, "RTAC") == 0) {
 
                 if( i == 0) {
@@ -385,6 +428,28 @@ void *threadedPublisher(void *input)
 int
 main(int argc, char **argv)
 {
+
+    // Setup logging
+    char buffer_time[26];
+    int millisec;
+    struct tm* tm_info;
+    struct timeval tv;
+
+    gettimeofday(&tv, NULL);
+
+    millisec = lrint(tv.tv_usec/1000.0); // Round to nearest millisec
+    if (millisec>=1000) { // Allow for rounding up to nearest second
+        millisec -=1000;
+        tv.tv_sec++;
+    }
+
+    tm_info = localtime(&tv.tv_sec);
+
+    strftime(buffer_time, 26, "%Y-%m-%d_%H-%M-%S", tm_info);
+
+    // fileLog("Try", buffer_time);
+    // fileLog("Try 2", buffer_time);
+
     GooseReceiver receiver = GooseReceiver_create();
     GoosePublisher publisher;
     GoosePublisher publisher_2;
@@ -650,7 +715,7 @@ main(int argc, char **argv)
 
     if (strcmp(device_name, "651R_2") == 0 ||
         strcmp(device_name, "787_2") == 0 ||
-        strcmp(device_name, "451_2") == 0 || ) {
+        strcmp(device_name, "451_2") == 0) {
             
         publisher_2 = NULL;
         publisher_3 = NULL;

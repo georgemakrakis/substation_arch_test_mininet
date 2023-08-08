@@ -357,8 +357,12 @@ void *threadedPublisher(void *input)
     int min_interval = 4;
     // int min_interval = 500;
     int publish_interval = min_interval;
-    // int max_interval = 100;
     int max_interval = 1000;
+    if (strcmp(device_name, "351_2") == 0 || strcmp(device_name, "787_2") == 0
+    || strcmp(device_name, "651R_2") == 0) {
+        max_interval = 100;
+    }
+    
     // int max_interval = 5000;
     
     // NOTE: Used as a simple condition to increase the StNum
@@ -411,6 +415,7 @@ void *threadedPublisher(void *input)
                     publish_interval = max_interval;
                 }
             }
+            // NOTE: There is no specific mention of intervals in the manual for RTAC
             else if (strcmp(device_name, "RTAC") == 0) {
 
                 if( i == 0) {
