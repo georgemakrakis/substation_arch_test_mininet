@@ -12,6 +12,8 @@
 #include <unistd.h>
 #include <dirent.h>
 #include <errno.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 
 #include "mms_value.h"
 #include "goose_publisher.h"
@@ -36,6 +38,25 @@ struct args_pub {
 };
 
 
+char *device_name;
+
+static int running = 1;
+
+static 
+LinkedList dataSetValues;
+
+static
+LinkedList dataSetValuesReceivedFrom651R_2;
+
+static
+LinkedList dataSetValuesTo787;
+
+static
+LinkedList dataSetValuesTo451_2;
+
+char buffer_time[26];
+
+
 void printLinkedList(LinkedList list){
 
     LinkedList valueElement = LinkedList_getNext(list);
@@ -53,28 +74,32 @@ void printLinkedList(LinkedList list){
     }
 }
 
-int fileLog(char *message, char * buffer_time){
+int fileLog(char *message){
+
+    char *dir_path = (char*)malloc(100 * sizeof(char));
+    sprintf(dir_path, "%s-%s", 
+        "/home/mininet/substation_arch_test/goose_CHE_203_generic/logs_dir", device_name);
 
     FILE *log_file;
-    // TODO: Pass that as parameter
-    DIR* dir = opendir("./goose_CHE_203_generic/logs_dir");
+    DIR* dir = opendir(dir_path);
 
     // printf("At %s.%03d\n", buffer_time, millisec);
-    char *log_timestamp = (char*)malloc(26 * sizeof(char));
-    sprintf(log_timestamp, "%s.log", buffer_time);
+    char *log_name = (char*)malloc(26 * sizeof(char));
+    sprintf(log_name, "%s-%s.log", device_name, buffer_time);
 
     if (dir) {
         closedir(dir);
     } else if (ENOENT == errno) {
-        printf("Directory does not exist, exiting ...");
-        return 1;
+        printf("Directory does not exist, creating ...\n");
+        int result = mkdir(dir_path, 0777);
+        closedir(dir);
     } else {
-        printf("Other directory error ...");
+        printf("Other directory error ...\n");
         return 1;
     }
 
-    char *log_path = (char*)malloc(60 * sizeof(char));
-    sprintf(log_path, "%s/%s", "./goose_CHE_203_generic/logs_dir", log_timestamp);
+    char *log_path = (char*)malloc(100 * sizeof(char));
+    sprintf(log_path, "%s/%s", dir_path, log_name);
 
     log_file = fopen(log_path, "a+"); // a+ (create + append) option will allow appending which is useful in a log file
     
@@ -87,22 +112,6 @@ int fileLog(char *message, char * buffer_time){
 
     return 0;
 }
-
-static int running = 1;
-
-static 
-LinkedList dataSetValues;
-
-static
-LinkedList dataSetValuesReceivedFrom651R_2;
-
-static
-LinkedList dataSetValuesTo787;
-
-static
-LinkedList dataSetValuesTo451_2;
-
-int buffer_time[26];
 
 static void
 sigint_handler(int signalId)
@@ -120,7 +129,12 @@ gooseListener(GooseSubscriber subscriber, void* parameter)
 
     uint64_t timestamp = GooseSubscriber_getTimestamp(subscriber);
 
-    printf("  timestamp: %u.%u\n", (uint32_t) (timestamp / 1000), (uint32_t) (timestamp % 1000));
+    char *timestamp_msg = (char*)malloc(60 * sizeof(char));
+    sprintf(timestamp_msg, "timestamp: %u.%u\n", (uint32_t) (timestamp / 1000), (uint32_t) (timestamp % 1000));
+    fileLog(timestamp_msg);
+
+    // printf("  timestamp: %u.%u\n", (uint32_t) (timestamp / 1000), (uint32_t) (timestamp % 1000));
+    printf("  %s", timestamp_msg);
     printf("  message is %s\n", GooseSubscriber_isValid(subscriber) ? "valid" : "INVALID");
 
     MmsValue* values = GooseSubscriber_getDataSetValues(subscriber);
@@ -202,7 +216,7 @@ gooseListener(GooseSubscriber subscriber, void* parameter)
     }
 
     // Adds time logging for the "packet"
-    char buffer_time[26];
+    char buffered_time[26];
     int millisec;
     struct tm* tm_info;
     struct timeval tv;
@@ -217,8 +231,8 @@ gooseListener(GooseSubscriber subscriber, void* parameter)
 
     tm_info = localtime(&tv.tv_sec);
 
-    strftime(buffer_time, 26, "%Y:%m:%d %H:%M:%S", tm_info);
-    printf("At %s.%03d\n", buffer_time, millisec);
+    strftime(buffered_time, 26, "%Y:%m:%d %H:%M:%S", tm_info);
+    printf("At %s.%03d\n", buffered_time, millisec);
 }
 
 
@@ -430,7 +444,7 @@ main(int argc, char **argv)
 {
 
     // Setup logging
-    char buffer_time[26];
+    // char buffer_time[26];
     int millisec;
     struct tm* tm_info;
     struct timeval tv;
@@ -456,7 +470,7 @@ main(int argc, char **argv)
     GoosePublisher publisher_3;
 
     char *interface;
-    char *device_name;
+    // char *device_name;
 
     if (argc > 1) {
         interface = argv[1];
