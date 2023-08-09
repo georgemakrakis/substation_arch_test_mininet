@@ -392,6 +392,11 @@ void *threadedPublisher(void *input)
     else  if (strcmp(device_name, "351_2") == 0) {
         max_interval = 100;
     }
+    // There is no example for RTAC, the values are arbitrary.
+    else  if (strcmp(device_name, "RTAC") == 0) {
+        min_interval = 10;
+        max_interval = 100;
+    }
     
     // int max_interval = 5000;
     
@@ -458,23 +463,33 @@ void *threadedPublisher(void *input)
                     publish_interval = max_interval;
                 }
             }
-            // NOTE: There is no specific mention of intervals in the manual for RTAC
             else if (strcmp(device_name, "RTAC") == 0) {
 
-                if( i == 0) {
+                if (i == 0 && publish_interval < max_interval) {
                     publish_interval = min_interval;
+                    GoosePublisher_setTimeAllowedToLive(publisher, 3 * publish_interval);
                 }
-                else if( i < 3) {
+                else if (i != 0 && publish_interval < max_interval){
                     publish_interval = 2 * publish_interval;
+                    if ( publish_interval >  max_interval){
+                        publish_interval = max_interval;
+                        GoosePublisher_setTimeAllowedToLive(publisher, 2 * max_interval);
+                    }
+                    else {
+                        GoosePublisher_setTimeAllowedToLive(publisher, 3 * publish_interval);
+                    }
+                    // GoosePublisher_setTimeAllowedToLive(publisher, 3 * publish_interval);
                 }
-                else {
+                else if (i != 0 && publish_interval >= max_interval){
                     publish_interval = max_interval;
+                    GoosePublisher_setTimeAllowedToLive(publisher, 2 * max_interval);
                 }
+
             }
             else if (strcmp(device_name, "487B_2") == 0) {
                 
                 if( i == 0 || i == 1) {
-                     GoosePublisher_setTimeAllowedToLive(publisher, 2 * min_interval);
+                    GoosePublisher_setTimeAllowedToLive(publisher, 2 * min_interval);
                     publish_interval = min_interval;
                 }
                 else if( i == 2) {
