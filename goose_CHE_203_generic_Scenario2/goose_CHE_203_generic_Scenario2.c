@@ -202,9 +202,23 @@ gooseListener(GooseSubscriber subscriber, void* parameter)
                     LinkedList_remove(dataSetValuesReceivedFrom351_2, value);
                     LinkedList_add(dataSetValuesReceivedFrom351_2, MmsValue_newIntegerFromInt32(MmsValue_toInt32(elementValue)));
                 }
+                // Not sure if the below is used anymore
                 else if (strcmp(GooseSubscriber_getGoCbRef(subscriber), "simple_451_2/PRO$CO$BCACSWI2") == 0){
 
                     printf("VALUES FROM 451\n");
+
+                    LinkedList prev_Val = LinkedList_get(dataSetValuesReceivedFrom451_2, i);
+
+                    MmsValue* value = (MmsValue*) LinkedList_getData(prev_Val);
+
+                    if (MmsValue_toInt32(value) != MmsValue_toInt32(elementValue)){
+                        updated_451_2 = 1;
+                    }
+
+                    LinkedList_remove(dataSetValuesReceivedFrom451_2, value);
+                    LinkedList_add(dataSetValuesReceivedFrom451_2, MmsValue_newIntegerFromInt32(MmsValue_toInt32(elementValue)));
+                }
+                else if (strcmp(GooseSubscriber_getGoCbRef(subscriber), "simple_487B_2/PRO$CO$TEST_4") == 0){
 
                     LinkedList prev_Val = LinkedList_get(dataSetValuesReceivedFrom451_2, i);
 
@@ -258,6 +272,9 @@ gooseListener(GooseSubscriber subscriber, void* parameter)
 
         if(updated_RTAC_451_2 == 1){
 
+            printf("dataSetValuesTo487B_2 BEFORE values are: \n");
+            printLinkedList(dataSetValuesTo487B_2);
+
             // Close 22, 23, 24
             LinkedList prev_Val = LinkedList_get(dataSetValuesTo487B_2, 0);
             MmsValue* value = (MmsValue*) LinkedList_getData(prev_Val);
@@ -275,10 +292,11 @@ gooseListener(GooseSubscriber subscriber, void* parameter)
             LinkedList_add(dataSetValuesTo487B_2, MmsValue_newIntegerFromInt32(1));
 
             // printf("dataSetValuesTo487B_2 AFTER values are: \n");
-            // printLinkedList(dataSetValuesTo487B_2); 
+            // printLinkedList(dataSetValuesTo487B_2);
         }
     }
 
+    // Messages from step e) to perform i)
     if (strcmp(GooseSubscriber_getGoCbRef(subscriber), "simple_451_2/PRO$CO$BCACSWI2") == 0){
 
         if(updated_487B_2 == 1){
@@ -375,10 +393,20 @@ void *threadedPublisher(void *input)
 
     while (1) {
              // Now we also publish based on the defined interval
-             if (GoosePublisher_publish(publisher, dataSetValues) == -1 
-                || (publisher_2  != NULL && GoosePublisher_publish(publisher_2, dataSetValuesTo787) == -1)
-                || (publisher_3  != NULL && GoosePublisher_publish(publisher_3, dataSetValuesTo451_2) == -1)) {
-                    printf("Error sending message!\n");
+            if (strcmp(device_name, "451_2") == 0){
+                if (GoosePublisher_publish(publisher, dataSetValues) == -1 
+                    || (publisher_2  != NULL && GoosePublisher_publish(publisher_2, dataSetValuesTo487B_2) == -1)){
+                        printf("Error sending message!\n");
+                }
+            }
+            else{ 
+                if (GoosePublisher_publish(publisher, dataSetValues) == -1 
+                    || (publisher_2  != NULL && GoosePublisher_publish(publisher_2, dataSetValuesTo787) == -1)
+                    || (publisher_3  != NULL && GoosePublisher_publish(publisher_3, dataSetValuesTo451_2) == -1)
+                    ){
+                    // || (publisher_2  != NULL && GoosePublisher_publish(publisher_2, dataSetValuesTo487B_2) == -1)) {
+                        printf("Error sending message!\n");
+                }
             }
             printf("Publishing...\n");
             // Thread_sleep(publish_interval);
@@ -488,33 +516,37 @@ void *threadedPublisher(void *input)
 
                 // dataSetValues = dataSetValuesTo487B_2;
 
-                for(int j=0; j<LinkedList_size(dataSetValues); j++){
+                // for(int j=0; j<LinkedList_size(dataSetValues); j++){
 
-                    LinkedList prev_Val = LinkedList_get(dataSetValues, j);
-                    LinkedList next_Val = LinkedList_get(dataSetValuesTo487B_2, j);
+                //     LinkedList prev_Val = LinkedList_get(dataSetValues, j);
+                //     LinkedList next_Val = LinkedList_get(dataSetValuesTo487B_2, j);
 
-                    MmsValue* value = (MmsValue*) LinkedList_getData(prev_Val);
-                    MmsValue* value_Next = (MmsValue*) LinkedList_getData(next_Val);
+                //     MmsValue* value = (MmsValue*) LinkedList_getData(prev_Val);
+                //     MmsValue* value_Next = (MmsValue*) LinkedList_getData(next_Val);
 
-                    LinkedList_remove(dataSetValues, value);
-                    LinkedList_add(dataSetValues, MmsValue_newIntegerFromInt32(MmsValue_toInt32(value_Next)));
-                }
+                //     LinkedList_remove(dataSetValues, value);
+                //     LinkedList_add(dataSetValues, MmsValue_newIntegerFromInt32(MmsValue_toInt32(value_Next)));
+                // }
 
                 if(updated_RTAC_451_2 == 1) {
                     GoosePublisher_increaseStNum(publisher);
+                    GoosePublisher_increaseStNum(publisher_2);
                     updated_RTAC_451_2 = 0;
                 }
                 
                 if( i == 0 || i == 1) {
                     GoosePublisher_setTimeAllowedToLive(publisher, 2 * min_interval);
+                    GoosePublisher_setTimeAllowedToLive(publisher_2, 2 * min_interval);
                     publish_interval = min_interval;
                 }
                 else if( i == 2) {
                     GoosePublisher_setTimeAllowedToLive(publisher, 2 * min_interval);
+                    GoosePublisher_setTimeAllowedToLive(publisher_2, 2 * min_interval);
                     publish_interval = 2 * publish_interval;
                 }
                 else {
                     GoosePublisher_setTimeAllowedToLive(publisher, 2 * max_interval);
+                    GoosePublisher_setTimeAllowedToLive(publisher_2, 2 * max_interval);
                     publish_interval = max_interval;
                 }
             }
@@ -524,7 +556,7 @@ void *threadedPublisher(void *input)
 
             // This could be step a) 
             if (strcmp(device_name, "651R_2") == 0 && i == max_i && step_a_done == 0) {
-                printf("=================== STEP A)  ===================");
+                printf("=================== STEP A)  ===================\n");
                 LinkedList prev_Val = LinkedList_get(dataSetValues, 0);
 
                 // LinkedList_remove(dataSetValues, prev_Val);
@@ -548,7 +580,7 @@ void *threadedPublisher(void *input)
             if (i == max_i && step_b_done == 0) {
 
                 if ( strcmp(device_name, "487B_2") == 0) {
-                    printf("=================== STEP B)  ===================");
+                    printf("=================== STEP B)  ===================\n");
 
                     // Trip 22
                     LinkedList prev_Val = LinkedList_get(dataSetValues, 0);
@@ -786,10 +818,15 @@ main(int argc, char **argv)
         printf("GOOSE 487B_2 configuration initiated...\n");
 
         // TODO: After testing rename this to just "subscriber"
-        subscriber = GooseSubscriber_create("simple_451_2/PRO$CO$BCACSWI2", NULL);
-        uint8_t dstMac[6] = {0x01,0x0c,0xcd,0x01,0x00,0x07};
+        // subscriber = GooseSubscriber_create("simple_451_2/PRO$CO$BCACSWI2", NULL);
+        // uint8_t dstMac[6] = {0x01,0x0c,0xcd,0x01,0x00,0x07};
+        // GooseSubscriber_setDstMac(subscriber, dstMac);
+        // GooseSubscriber_setAppId(subscriber, 1007);
+
+        subscriber = GooseSubscriber_create("simple_487B_2/PRO$CO$TEST_4", NULL);
+        uint8_t dstMac[6] = {0x01,0x0c,0xcd,0x01,0x00,0x09};
         GooseSubscriber_setDstMac(subscriber, dstMac);
-        GooseSubscriber_setAppId(subscriber, 1007);
+        GooseSubscriber_setAppId(subscriber, 1009);
     }
     else if (strcmp(device_name, "351_2") == 0)
     {
@@ -971,6 +1008,16 @@ main(int argc, char **argv)
         LinkedList_add(dataSetValuesTo487B_2, MmsValue_newIntegerFromInt32(0));
         LinkedList_add(dataSetValuesTo487B_2, MmsValue_newIntegerFromInt32(0));
 
+        gooseCommParameters_2.appId = 1009;
+        gooseCommParameters_2.dstAddress[0] = 0x01;
+        gooseCommParameters_2.dstAddress[1] = 0x0c;
+        gooseCommParameters_2.dstAddress[2] = 0xcd;
+        gooseCommParameters_2.dstAddress[3] = 0x01;
+        gooseCommParameters_2.dstAddress[4] = 0x00;
+        gooseCommParameters_2.dstAddress[5] = 0x09;
+        gooseCommParameters_2.vlanId = 0;
+        gooseCommParameters_2.vlanPriority = 4;
+
         // RTAC to 451-2
         LinkedList_add(dataSetValuesReceivedFromRTAC, MmsValue_newIntegerFromInt32(0));
         LinkedList_add(dataSetValuesReceivedFromRTAC, MmsValue_newIntegerFromInt32(0));
@@ -994,6 +1041,7 @@ main(int argc, char **argv)
          // NOTE: Disable for now might be enabled later.
         // LinkedList_add(dataSetValues, MmsValue_newBoolean(false));
         
+        LinkedList_add(dataSetValuesReceivedFrom451_2, MmsValue_newIntegerFromInt32(0));
         LinkedList_add(dataSetValuesReceivedFrom451_2, MmsValue_newIntegerFromInt32(0));
         LinkedList_add(dataSetValuesReceivedFrom451_2, MmsValue_newIntegerFromInt32(0));
 
@@ -1081,10 +1129,15 @@ main(int argc, char **argv)
             // GoosePublisher_setGoCbRef(publisher, "simple_651R_2/LLN0$CO$BCACSWI2$Pos$ctlVal");
             GoosePublisher_setGoCbRef(publisher, "simple_651R_2/PRO$CO$BCACSWI2");
             GoosePublisher_setDataSetRef(publisher, "simple_651R_2/PRO$BCACSWI2_DataSet");
+
+            publisher_2 = NULL;
+            publisher_3 = NULL;
         }
         else if (strcmp(device_name, "787_2") == 0)
         {
             printf("787_2 GOOSE configuration initiated...\n");
+            publisher_2 = NULL;
+            publisher_3 = NULL;
         }
         else if (strcmp(device_name, "451_2") == 0)
         {
@@ -1092,6 +1145,11 @@ main(int argc, char **argv)
 
             GoosePublisher_setGoCbRef(publisher, "simple_451_2/PRO$CO$BCACSWI2");
             GoosePublisher_setDataSetRef(publisher, "simple_451_2/PRO$BCACSWI2_DataSet");
+
+            GoosePublisher_setGoCbRef(publisher_2, "simple_487B_2/PRO$CO$TEST_4");
+            GoosePublisher_setDataSetRef(publisher_2, "simple_487B_2/PRO$TEST_4_DataSet");
+
+            publisher_3 = NULL;
         }
         else if (strcmp(device_name, "487B_2") == 0)
         {
@@ -1099,6 +1157,9 @@ main(int argc, char **argv)
 
             GoosePublisher_setGoCbRef(publisher, "simple_487B_2/PRO$CO$BCACSWI2");
             GoosePublisher_setDataSetRef(publisher, "simple_487B_2/PRO$BCACSWI2_DataSet");
+
+            publisher_2 = NULL;
+            publisher_3 = NULL;
         }
         else if (strcmp(device_name, "351_2") == 0)
         {
@@ -1106,22 +1167,15 @@ main(int argc, char **argv)
 
             GoosePublisher_setGoCbRef(publisher, "simple_351_2/PRO$CO$BCACSWI2");
             GoosePublisher_setDataSetRef(publisher, "simple_351_2/PRO$BCACSWI2_DataSet");
+
+            publisher_2 = NULL;
+            publisher_3 = NULL;
         }
         else
         {
             printf("No device supported, exiting...\n");
             return 1;
         }
-    }
-
-    if (strcmp(device_name, "651R_2") == 0 ||
-        strcmp(device_name, "787_2") == 0 ||
-        strcmp(device_name, "451_2") == 0 ||
-        strcmp(device_name, "487B_2") == 0 ||
-        strcmp(device_name, "351_2") == 0) {
-            
-        publisher_2 = NULL;
-        publisher_3 = NULL;
     }
 
     GooseSubscriber_setListener(subscriber, gooseListener, NULL);
