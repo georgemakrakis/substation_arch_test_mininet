@@ -376,8 +376,20 @@ void *threadedPublisher(void *input)
     // int min_interval = 500;
     int publish_interval = min_interval;
     int max_interval = 1000;
-    if (strcmp(device_name, "351_2") == 0 || strcmp(device_name, "787_2") == 0
-    || strcmp(device_name, "651R_2") == 0) {
+    if (strcmp(device_name, "651R_2") == 0) {
+        max_interval = 100;
+    }
+    else  if (strcmp(device_name, "787_2") == 0) {
+        min_interval = 10;
+        max_interval = 100;
+    }
+    else  if (strcmp(device_name, "451_1") == 0) {
+        max_interval = 1000;
+    }
+    else  if (strcmp(device_name, "487B") == 0) {
+        max_interval = 1000;
+    }
+    else  if (strcmp(device_name, "351_2") == 0) {
         max_interval = 100;
     }
     
