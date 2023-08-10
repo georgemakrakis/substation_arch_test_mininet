@@ -383,7 +383,7 @@ void *threadedPublisher(void *input)
         min_interval = 10;
         max_interval = 100;
     }
-    else  if (strcmp(device_name, "451_1") == 0) {
+    else  if (strcmp(device_name, "451_2") == 0) {
         max_interval = 1000;
     }
     else  if (strcmp(device_name, "487B") == 0) {
@@ -410,19 +410,24 @@ void *threadedPublisher(void *input)
 
     while (1) {
              // Now we also publish based on the defined interval
-            if (strcmp(device_name, "451_2") == 0){
+            if (strcmp(device_name, "451_2") == 0) {
                 if (GoosePublisher_publish(publisher, dataSetValues) == -1 
                     || (publisher_2  != NULL && GoosePublisher_publish(publisher_2, dataSetValuesTo487B_2) == -1)){
                         printf("Error sending message!\n");
                 }
             }
-            else{ 
+            else if (strcmp(device_name, "RTAC") == 0) {
                 if (GoosePublisher_publish(publisher, dataSetValues) == -1 
-                    || (publisher_2  != NULL && GoosePublisher_publish(publisher_2, dataSetValuesTo787) == -1)
-                    || (publisher_3  != NULL && GoosePublisher_publish(publisher_3, dataSetValuesTo451_2) == -1)
+                    || GoosePublisher_publish(publisher_2, dataSetValuesTo787) == -1
+                    || GoosePublisher_publish(publisher_3, dataSetValuesTo451_2) == -1
                     ){
                     // || (publisher_2  != NULL && GoosePublisher_publish(publisher_2, dataSetValuesTo487B_2) == -1)) {
                         printf("Error sending message!\n");
+                }
+            }
+            else {
+                if (GoosePublisher_publish(publisher, dataSetValues) == -1 ){
+                    printf("Error sending message!\n");
                 }
             }
             printf("Publishing...\n");
@@ -467,16 +472,22 @@ void *threadedPublisher(void *input)
 
                 if (i == 0 && publish_interval < max_interval) {
                     publish_interval = min_interval;
-                    GoosePublisher_setTimeAllowedToLive(publisher, 3 * publish_interval);
+                    GoosePublisher_setTimeAllowedToLive(publisher, 2 * max_interval);
+                    GoosePublisher_setTimeAllowedToLive(publisher_2, 2 * max_interval);
+                    GoosePublisher_setTimeAllowedToLive(publisher_2, 3 * publish_interval);
                 }
                 else if (i != 0 && publish_interval < max_interval){
                     publish_interval = 2 * publish_interval;
                     if ( publish_interval >  max_interval){
                         publish_interval = max_interval;
                         GoosePublisher_setTimeAllowedToLive(publisher, 2 * max_interval);
+                        GoosePublisher_setTimeAllowedToLive(publisher_2, 2 * max_interval);
+                        GoosePublisher_setTimeAllowedToLive(publisher_3, 2 * max_interval);
                     }
                     else {
                         GoosePublisher_setTimeAllowedToLive(publisher, 3 * publish_interval);
+                        GoosePublisher_setTimeAllowedToLive(publisher_2, 3 * publish_interval);
+                        GoosePublisher_setTimeAllowedToLive(publisher_3, 3 * publish_interval);
                     }
                     // GoosePublisher_setTimeAllowedToLive(publisher, 3 * publish_interval);
                 }
@@ -556,9 +567,16 @@ void *threadedPublisher(void *input)
                 // }
 
                 if(updated_RTAC_451_2 == 1) {
-                    GoosePublisher_increaseStNum(publisher);
-                    GoosePublisher_increaseStNum(publisher_2);
+                    // GoosePublisher_increaseStNum(publisher);
+                    // i = 0;
+                    
                     updated_RTAC_451_2 = 0;
+                }
+                if (updated_487B_2 == 1){
+                    GoosePublisher_increaseStNum(publisher_2);
+                    i = 0;
+
+                    updated_487B_2 = 0;
                 }
                 
                 if( i == 0 || i == 1) {
@@ -678,6 +696,8 @@ void *threadedPublisher(void *input)
                 LinkedList_remove(dataSetValues, value);
                 LinkedList_add(dataSetValues, MmsValue_newIntegerFromInt32(1));
 
+                GoosePublisher_increaseStNum(publisher);
+
                 // For RTAC --> 787_2
                 prev_Val_0 = LinkedList_get(dataSetValuesTo787, 0);
                 
@@ -705,11 +725,11 @@ void *threadedPublisher(void *input)
                     updated_651R_2 = 0;
                     updated_487B_2 = 0;
                     updated_351_2 = 0;
+                    GoosePublisher_increaseStNum(publisher_2);
+                    GoosePublisher_increaseStNum(publisher_3);
                 }
 
-                GoosePublisher_increaseStNum(publisher);
-                GoosePublisher_increaseStNum(publisher_2);
-                GoosePublisher_increaseStNum(publisher_3);
+                
                 publish_interval = 0;
 
                 step_e_done = 1;
@@ -722,7 +742,7 @@ void *threadedPublisher(void *input)
             // NOTE: Not sure if that is really needed.
             if (step_e_done == 1){
                 i = 0;
-                step_e_done = 0;
+                // step_e_done = 0;
             }
 
             // if (step_b_done == 1){

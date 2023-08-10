@@ -481,6 +481,8 @@ void *threadedPublisher(void *input)
                 LinkedList_add(dataSetValuesTo451_2, MmsValue_newIntegerFromInt32(0));
 
                 GoosePublisher_increaseStNum(publisher);
+                GoosePublisher_increaseStNum(publisher_2);
+                GoosePublisher_increaseStNum(publisher_3);
                 publish_interval = 0;
 
                 step_e_done = 1;
