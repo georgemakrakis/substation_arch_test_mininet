@@ -276,8 +276,8 @@ main(int argc, char **argv)
     LinkedList_add(dataSetValuesReceivedFromRTAC,  MmsValue_newIntegerFromInt32(0));
     
     // For 487B_2
-    gooseCommParameters.appId = 1007;
-    memcpy(gooseCommParameters.dstAddress, (unsigned char[]) {0x01,0x0c,0xcd,0x01,0x00,0x07 }, 
+    gooseCommParameters.appId = 1009;
+    memcpy(gooseCommParameters.dstAddress, (unsigned char[]) {0x01,0x0c,0xcd,0x01,0x00,0x09 }, 
         sizeof gooseCommParameters.dstAddress);
 
     gooseCommParameters.vlanId = 0;

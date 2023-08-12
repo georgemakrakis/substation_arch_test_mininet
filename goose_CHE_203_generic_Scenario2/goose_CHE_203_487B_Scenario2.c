@@ -214,6 +214,16 @@ void *threadedPublisher(void *input)
         // TODO: Need to check for the received values from 451_2 
         // and then change those for 351_2
 
+        if (updated_451_2 == 1) {
+            
+            LinkedList prev_Val = LinkedList_get(dataSetValuesTo351_2, 0);
+
+            MmsValue* value = (MmsValue*) LinkedList_getData(prev_Val);
+
+            LinkedList_remove(dataSetValuesTo351_2, value);
+            LinkedList_add(dataSetValuesTo351_2, MmsValue_newIntegerFromInt32(1));
+        }
+
         Thread_sleep(publish_interval);
     }
 }
@@ -249,7 +259,7 @@ main(int argc, char **argv)
     printf("GOOSE subscriber 487B_2 configuration initiated...\n");
         
     // This should be sub for data from 451_2
-    subscriber = GooseSubscriber_create("simple_487B_2/PRO$CO$TEST_4", NULL);
+    subscriber = GooseSubscriber_create("simple_451_2/PRO$CO$BCACSWI2", NULL);
     uint8_t dstMac[6] = {0x01,0x0c,0xcd,0x01,0x00,0x09};
     GooseSubscriber_setDstMac(subscriber, dstMac);
     GooseSubscriber_setAppId(subscriber, 1009);

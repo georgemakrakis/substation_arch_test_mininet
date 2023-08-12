@@ -245,10 +245,10 @@ main(int argc, char **argv)
     printf("GOOSE subscriber 351_2 configuration initiated...\n");
         
     // This should be sub for data from 451_2
-    subscriber = GooseSubscriber_create("simple_487B_2/PRO$CO$TEST_4", NULL);
-    uint8_t dstMac[6] = {0x01,0x0c,0xcd,0x01,0x00,0x09};
+    subscriber = GooseSubscriber_create("simple_487B_2/PRO$CO$BCACSWI2_2", NULL);
+    uint8_t dstMac[6] = {0x01,0x0c,0xcd,0x01,0x00,0x10};
     GooseSubscriber_setDstMac(subscriber, dstMac);
-    GooseSubscriber_setAppId(subscriber, 1009);
+    GooseSubscriber_setAppId(subscriber, 1010);
     
     GooseSubscriber_setListener(subscriber, gooseListener, NULL);
     GooseReceiver_addSubscriber(receiver, subscriber);

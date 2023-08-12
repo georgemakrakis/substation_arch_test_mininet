@@ -32,13 +32,11 @@ static
 LinkedList dataSetValuesReceivedFromRTAC;
 
 static
-LinkedList dataSetValuesReceivedFromRTAC;
-
-static
 LinkedList dataSetValuesReceivedFrom351_2;
 
 static
-LinkedList dataSetValuesReceivedFromRTAC;
+LinkedList dataSetValuesReceivedFrom487B_2;
+
 
 static
 LinkedList dataSetValuesTo787;
@@ -53,6 +51,8 @@ static
 LinkedList dataSetValuesTo651R_2;
 
 int updated_651R_2 = 0;
+int updated_487B_2 = 0;
+int updated_351_2 = 0;
 
 struct args_rec {
     int myid;
@@ -133,6 +133,34 @@ gooseListener(GooseSubscriber subscriber, void* parameter)
 
                 LinkedList_remove(dataSetValuesReceivedFrom651R_2, value);
                 LinkedList_add(dataSetValuesReceivedFrom651R_2, MmsValue_newIntegerFromInt32(MmsValue_toInt32(elementValue)));
+            }
+            else if (elementValue && strcmp(GooseSubscriber_getGoCbRef(subscriber), "simple_487B_2/PRO$CO$BCACSWI2") == 0) {
+                printf("VALUES FROM 487B_2\n");
+
+                LinkedList prev_Val = LinkedList_get(dataSetValuesReceivedFrom487B_2, i);
+
+                MmsValue* value = (MmsValue*) LinkedList_getData(prev_Val);
+
+                if (MmsValue_toInt32(value) != MmsValue_toInt32(elementValue)){
+                    updated_487B_2 = 1;
+                }
+
+                LinkedList_remove(dataSetValuesReceivedFrom487B_2, value);
+                LinkedList_add(dataSetValuesReceivedFrom487B_2, MmsValue_newIntegerFromInt32(MmsValue_toInt32(elementValue)));
+            }
+              else if (elementValue && strcmp(GooseSubscriber_getGoCbRef(subscriber), "simple_351_2/PRO$CO$BCACSWI2") == 0) {
+                printf("VALUES FROM 351_2\n");
+
+                LinkedList prev_Val = LinkedList_get(dataSetValuesReceivedFrom351_2, i);
+
+                MmsValue* value = (MmsValue*) LinkedList_getData(prev_Val);
+
+                if (MmsValue_toInt32(value) != MmsValue_toInt32(elementValue)){
+                    updated_351_2 = 1;
+                }
+
+                LinkedList_remove(dataSetValuesReceivedFrom351_2, value);
+                LinkedList_add(dataSetValuesReceivedFrom351_2, MmsValue_newIntegerFromInt32(MmsValue_toInt32(elementValue)));
             }
         }
     }
@@ -218,7 +246,7 @@ void *threadedPublisher(void *input)
 
         // TODO: Need to add condition that will initiate step j)
 
-        if (updated_651R_2 == 1){
+        if (updated_651R_2 == 1 && updated_487B_2 == 1 && updated_351_2 == 1){
             
             // Open 21
             LinkedList prev_Val = LinkedList_get(dataSetValuesTo787, 0);
@@ -240,7 +268,11 @@ void *threadedPublisher(void *input)
             GoosePublisher_increaseStNum(publisher_2);
             GoosePublisher_increaseStNum(publisher_3);
 
+            // TODO: Maybe we need to send data to 787 here as well.
+
             updated_651R_2 = 0;
+            updated_487B_2 = 0;
+            updated_351_2 = 0;
 
             publish_interval = min_interval;
 
@@ -312,7 +344,7 @@ main(int argc, char **argv)
     dataSetValues = LinkedList_create();
 
     dataSetValuesReceivedFrom651R_2 = LinkedList_create();
-    dataSetValuesReceivedFromRTAC = LinkedList_create();
+    dataSetValuesReceivedFrom487B_2 = LinkedList_create();
     dataSetValuesReceivedFrom351_2 = LinkedList_create();
 
     dataSetValuesTo787 = LinkedList_create();
@@ -380,9 +412,9 @@ main(int argc, char **argv)
     gooseCommParameters_3.vlanPriority = 4;
     
     // For device No 487B_2 0/1 or Open/Close for lines 22-24.
-    LinkedList_add(dataSetValuesReceivedFromRTAC,  MmsValue_newIntegerFromInt32(0));
-    LinkedList_add(dataSetValuesReceivedFromRTAC,  MmsValue_newIntegerFromInt32(0));
-    LinkedList_add(dataSetValuesReceivedFromRTAC,  MmsValue_newIntegerFromInt32(0));
+    LinkedList_add(dataSetValuesReceivedFrom487B_2,  MmsValue_newIntegerFromInt32(0));
+    LinkedList_add(dataSetValuesReceivedFrom487B_2,  MmsValue_newIntegerFromInt32(0));
+    LinkedList_add(dataSetValuesReceivedFrom487B_2,  MmsValue_newIntegerFromInt32(0));
 
     // For device No 351_2 0/1 or Open/Close for line 25.
     LinkedList_add(dataSetValuesReceivedFrom351_2,  MmsValue_newIntegerFromInt32(0));
