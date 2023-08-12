@@ -32,7 +32,7 @@ static
 LinkedList dataSetValuesTo351_2;
 
 static
-LinkedList dataSetValuesToRTAC;
+LinkedList dataSetValuesTo487B_2;
 
 int updated_451_2 = 0;
 
@@ -102,7 +102,7 @@ gooseListener(GooseSubscriber subscriber, void* parameter)
         for (int i=0; i<values_size; i++){
             MmsValue* elementValue = MmsValue_getElement(values, i);
 
-            if (elementValue && strcmp(GooseSubscriber_getGoCbRef(subscriber), "simple_651R_2/PRO$CO$TEST") == 0) {
+            if (elementValue && strcmp(GooseSubscriber_getGoCbRef(subscriber), "simple_451_2/PRO$CO$BCACSWI2") == 0) {
                 printf("VALUES FROM 451_2\n");
 
                 LinkedList prev_Val = LinkedList_get(dataSetValuesReceivedFrom451_2, i);
@@ -162,7 +162,7 @@ void *threadedPublisher(void *input)
 
     while (1) {
 
-        if (GoosePublisher_publish(publisher, dataSetValuesToRTAC) == -1 ||
+        if (GoosePublisher_publish(publisher, dataSetValuesTo487B_2) == -1 ||
             GoosePublisher_publish(publisher_2, dataSetValuesTo351_2) == -1) {
             printf("Error sending message!\n");
         }
@@ -190,17 +190,17 @@ void *threadedPublisher(void *input)
             
             printf("=================== STEP B)  ===================");
             
-            int values_size = LinkedList_size(dataSetValuesToRTAC);
+            int values_size = LinkedList_size(dataSetValuesTo487B_2);
 
             for (int i=0; i<values_size; i++){
 
                 // LinkedList prev_Val = LinkedList_get(dataSetValuesToRTAC, i);
-                LinkedList prev_Val = LinkedList_get(dataSetValuesToRTAC, 0);
+                LinkedList prev_Val = LinkedList_get(dataSetValuesTo487B_2, 0);
 
                 MmsValue* value = (MmsValue*) LinkedList_getData(prev_Val);
 
-                LinkedList_remove(dataSetValuesToRTAC, value);
-                LinkedList_add(dataSetValuesToRTAC, MmsValue_newIntegerFromInt32(0));
+                LinkedList_remove(dataSetValuesTo487B_2, value);
+                LinkedList_add(dataSetValuesTo487B_2, MmsValue_newIntegerFromInt32(0));
             }
 
             GoosePublisher_increaseStNum(publisher);
@@ -263,7 +263,7 @@ main(int argc, char **argv)
     dataSetValuesReceivedFrom451_2 = LinkedList_create();
 
     dataSetValuesTo351_2 = LinkedList_create();
-    dataSetValuesToRTAC = LinkedList_create();
+    dataSetValuesTo487B_2 = LinkedList_create();
 
     CommParameters gooseCommParameters;
     CommParameters gooseCommParameters_2;
@@ -276,9 +276,9 @@ main(int argc, char **argv)
     LinkedList_add(dataSetValuesTo351_2, MmsValue_newIntegerFromInt32(1));
 
     // For 22, 23, 24 
-    LinkedList_add(dataSetValuesToRTAC, MmsValue_newIntegerFromInt32(1));
-    LinkedList_add(dataSetValuesToRTAC, MmsValue_newIntegerFromInt32(1));
-    LinkedList_add(dataSetValuesToRTAC, MmsValue_newIntegerFromInt32(1));
+    LinkedList_add(dataSetValuesTo487B_2, MmsValue_newIntegerFromInt32(1));
+    LinkedList_add(dataSetValuesTo487B_2, MmsValue_newIntegerFromInt32(1));
+    LinkedList_add(dataSetValuesTo487B_2, MmsValue_newIntegerFromInt32(1));
 
     // Breaker status (for device No ?) 0/1 or Open/Close.
     LinkedList_add(dataSetValuesReceivedFrom451_2,  MmsValue_newIntegerFromInt32(0));

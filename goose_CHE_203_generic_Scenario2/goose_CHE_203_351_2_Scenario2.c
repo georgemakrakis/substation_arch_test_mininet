@@ -29,6 +29,9 @@ static
 LinkedList dataSetValuesReceivedFromRTAC;
 
 static
+LinkedList dataSetValuesTo351_2;
+
+static
 LinkedList dataSetValuesTo487B_2;
 
 int updated_451_2 = 0;
@@ -99,8 +102,8 @@ gooseListener(GooseSubscriber subscriber, void* parameter)
         for (int i=0; i<values_size; i++){
             MmsValue* elementValue = MmsValue_getElement(values, i);
 
-            if (elementValue && strcmp(GooseSubscriber_getGoCbRef(subscriber), "simple_651R_2/PRO$CO$TEST") == 0) {
-                printf("VALUES FROM RTAC\n");
+            if (elementValue && strcmp(GooseSubscriber_getGoCbRef(subscriber), "simple_487B_2/PRO$CO$BCACSWI2_2") == 0) {
+                printf("VALUES FROM 487B_2\n");
 
                 LinkedList prev_Val = LinkedList_get(dataSetValuesReceivedFromRTAC, i);
 
@@ -132,7 +135,7 @@ void *threadedReceiver(void *input)
         }
     }
     else {
-        printf("Failed to start GOOSE subscriber. Reason can be that the Ethernet interface doesn't exist or root permission are required.\n");
+        printf("Failed to start GOOSE subscriber. Reason can be that the Ethernet interface doesn't exist or root permission is required.\n");
     }
 }
 
@@ -155,47 +158,57 @@ void *threadedPublisher(void *input)
     // NOTE: Used as a simple condition to increase the StNum
     int max_i = 30;
 
-    int step_a_done = 0;
+    int step_b_done = 0;
 
     while (1) {
 
-        if (GoosePublisher_publish(publisher, dataSetValuesTo487B_2) == -1) {
+        if (GoosePublisher_publish(publisher, dataSetValuesTo487B_2) == -1){
             printf("Error sending message!\n");
         }
         printf("Publishing...\n");
 
        if( i == 0 || i == 1) {
-            GoosePublisher_setTimeAllowedToLive(publisher, 3 * min_interval);
             publish_interval = min_interval;
+            GoosePublisher_setTimeAllowedToLive(publisher, 3 * min_interval);
         }
         else if( i == 2) {
-            GoosePublisher_setTimeAllowedToLive(publisher, 2 * max_interval);
             publish_interval = 2 * publish_interval;
+            GoosePublisher_setTimeAllowedToLive(publisher, 2 * max_interval);
         }
         else {
-            GoosePublisher_setTimeAllowedToLive(publisher, 2 * max_interval);
             publish_interval = max_interval;
+            GoosePublisher_setTimeAllowedToLive(publisher, 2 * max_interval);
         }
 
         i++;
 
-        if (i == max_i && step_a_done == 0){
+        if (i == max_i && step_b_done == 0){
             
-            printf("=================== STEP A)  ===================");
-            LinkedList prev_Val = LinkedList_get(dataSetValuesTo487B_2, 0);
+            printf("=================== STEP B)  ===================");
+            
+            int values_size = LinkedList_size(dataSetValuesTo487B_2);
 
-            MmsValue* value = (MmsValue*) LinkedList_getData(prev_Val);
+            for (int i=0; i<values_size; i++){
 
-            LinkedList_remove(dataSetValuesTo487B_2, value);
-            LinkedList_add(dataSetValuesTo487B_2, MmsValue_newIntegerFromInt32(0));
+                // LinkedList prev_Val = LinkedList_get(dataSetValuesToRTAC, i);
+                LinkedList prev_Val = LinkedList_get(dataSetValuesTo487B_2, 0);
+
+                MmsValue* value = (MmsValue*) LinkedList_getData(prev_Val);
+
+                LinkedList_remove(dataSetValuesTo487B_2, value);
+                LinkedList_add(dataSetValuesTo487B_2, MmsValue_newIntegerFromInt32(0));
+            }
 
             GoosePublisher_increaseStNum(publisher);
             publish_interval = min_interval;
 
-            step_a_done = 1;
+            step_b_done = 1;
 
             i = 0;
         }
+
+        // TODO: Need to check for the received values from 451_2 
+        // and then change those for 351_2
 
         Thread_sleep(publish_interval);
     }
@@ -229,14 +242,14 @@ main(int argc, char **argv)
     GooseSubscriber subscriber_2;
     GooseSubscriber subscriber_3;
 
-    printf("GOOSE subscriber 651R_2 configuration initiated...\n");
+    printf("GOOSE subscriber 351_2 configuration initiated...\n");
         
-    // This should be sub for data from RTAC
-    subscriber = GooseSubscriber_create("simple_651R_2/PRO$CO$TEST", NULL);
-    uint8_t dstMac[6] = {0x01,0x0c,0xcd,0x01,0x00,0x01};
+    // This should be sub for data from 451_2
+    subscriber = GooseSubscriber_create("simple_487B_2/PRO$CO$TEST_4", NULL);
+    uint8_t dstMac[6] = {0x01,0x0c,0xcd,0x01,0x00,0x09};
     GooseSubscriber_setDstMac(subscriber, dstMac);
-    GooseSubscriber_setAppId(subscriber, 1001);
-
+    GooseSubscriber_setAppId(subscriber, 1009);
+    
     GooseSubscriber_setListener(subscriber, gooseListener, NULL);
     GooseReceiver_addSubscriber(receiver, subscriber);
 
@@ -251,27 +264,30 @@ main(int argc, char **argv)
     CommParameters gooseCommParameters_2;
     CommParameters gooseCommParameters_3;
 
-    printf("GOOSE publisher 651R_2 configuration initiated...\n");
+    printf("GOOSE publisher 351_2 configuration initiated...\n");
 
     // Breaker status (for device No ?) 0/1 or Open/Close.
     // Should be CLOSED initially
+    // For 25
     LinkedList_add(dataSetValuesTo487B_2, MmsValue_newIntegerFromInt32(1));
 
     // Breaker status (for device No ?) 0/1 or Open/Close.
     LinkedList_add(dataSetValuesReceivedFromRTAC,  MmsValue_newIntegerFromInt32(0));
-
-    gooseCommParameters.appId = 1002;
-    memcpy(gooseCommParameters.dstAddress, (unsigned char[]) {0x01,0x0c,0xcd,0x01,0x00,0x02 }, 
+    LinkedList_add(dataSetValuesReceivedFromRTAC,  MmsValue_newIntegerFromInt32(0));
+    LinkedList_add(dataSetValuesReceivedFromRTAC,  MmsValue_newIntegerFromInt32(0));
+    
+    // For RTAC
+    gooseCommParameters.appId = 1006;
+    memcpy(gooseCommParameters.dstAddress, (unsigned char[]) {0x01,0x0c,0xcd,0x01,0x00,0x06 }, 
         sizeof gooseCommParameters.dstAddress);
 
     gooseCommParameters.vlanId = 0;
     gooseCommParameters.vlanPriority = 4;
 
-
     publisher = GoosePublisher_create(&gooseCommParameters, interface);
 
-    GoosePublisher_setGoCbRef(publisher, "simple_651R_2/PRO$CO$BCACSWI2");
-    GoosePublisher_setDataSetRef(publisher, "simple_651R_2/PRO$BCACSWI2_DataSet");
+    GoosePublisher_setGoCbRef(publisher, "simple_351_2/PRO$CO$BCACSWI2");
+    GoosePublisher_setDataSetRef(publisher, "simple_351_2/PRO$BCACSWI2_DataSet");
 
 
     pthread_t tid_rec;
@@ -284,7 +300,7 @@ main(int argc, char **argv)
 
     pthread_t tid_pub;
     struct args_pub *pub_struct = (struct args_pub *)malloc(sizeof(struct args_pub));
-    pub_struct->device_name = "651R_2";
+    pub_struct->device_name = "351_2";
     pub_struct->publisher = publisher;
     pub_struct->publisher_2 = publisher_2;
     pub_struct->publisher_3 = publisher_3;

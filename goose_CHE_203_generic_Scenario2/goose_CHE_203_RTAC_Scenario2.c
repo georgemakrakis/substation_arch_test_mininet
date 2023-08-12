@@ -32,13 +32,13 @@ static
 LinkedList dataSetValuesReceivedFromRTAC;
 
 static
-LinkedList dataSetValuesReceivedFrom487B_2;
+LinkedList dataSetValuesReceivedFromRTAC;
 
 static
 LinkedList dataSetValuesReceivedFrom351_2;
 
 static
-LinkedList dataSetValuesReceivedFrom451_2;
+LinkedList dataSetValuesReceivedFromRTAC;
 
 static
 LinkedList dataSetValuesTo787;
@@ -312,7 +312,7 @@ main(int argc, char **argv)
     dataSetValues = LinkedList_create();
 
     dataSetValuesReceivedFrom651R_2 = LinkedList_create();
-    dataSetValuesReceivedFrom487B_2 = LinkedList_create();
+    dataSetValuesReceivedFromRTAC = LinkedList_create();
     dataSetValuesReceivedFrom351_2 = LinkedList_create();
 
     dataSetValuesTo787 = LinkedList_create();
@@ -380,9 +380,9 @@ main(int argc, char **argv)
     gooseCommParameters_3.vlanPriority = 4;
     
     // For device No 487B_2 0/1 or Open/Close for lines 22-24.
-    LinkedList_add(dataSetValuesReceivedFrom487B_2,  MmsValue_newIntegerFromInt32(0));
-    LinkedList_add(dataSetValuesReceivedFrom487B_2,  MmsValue_newIntegerFromInt32(0));
-    LinkedList_add(dataSetValuesReceivedFrom487B_2,  MmsValue_newIntegerFromInt32(0));
+    LinkedList_add(dataSetValuesReceivedFromRTAC,  MmsValue_newIntegerFromInt32(0));
+    LinkedList_add(dataSetValuesReceivedFromRTAC,  MmsValue_newIntegerFromInt32(0));
+    LinkedList_add(dataSetValuesReceivedFromRTAC,  MmsValue_newIntegerFromInt32(0));
 
     // For device No 351_2 0/1 or Open/Close for line 25.
     LinkedList_add(dataSetValuesReceivedFrom351_2,  MmsValue_newIntegerFromInt32(0));
