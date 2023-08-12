@@ -7,6 +7,7 @@
 #include <sys/time.h>
 #include <time.h>
 #include <math.h>
+#include <inttypes.h>
 
 #include <pthread.h>
 #include <unistd.h>
@@ -129,9 +130,23 @@ gooseListener(GooseSubscriber subscriber, void* parameter)
 
     uint64_t timestamp = GooseSubscriber_getTimestamp(subscriber);
 
-    char *timestamp_msg = (char*)malloc(60 * sizeof(char));
-    sprintf(timestamp_msg, "timestamp: %u.%u\n", (uint32_t) (timestamp / 1000), (uint32_t) (timestamp % 1000));
+    char *timestamp_msg = (char*)malloc(70 * sizeof(char));
+    sprintf(timestamp_msg, "packet timestamp: %u.%u\n", (uint32_t) (timestamp / 1000), (uint32_t) (timestamp % 1000));
     fileLog(timestamp_msg);
+
+    // Creating loggging for the device
+    // long            ms; // Milliseconds
+    // time_t          s;  // Seconds
+    // struct timespec spec;
+    // clock_gettime(CLOCK_REALTIME, &spec);
+    // s  = spec.tv_sec;
+    // ms = round(spec.tv_nsec / 1.0e6); // Convert nanoseconds to milliseconds
+    // if (ms > 999) {
+    //     s++;
+    //     ms = 0;
+    // }
+    // sprintf(timestamp_msg, "device timestamp: %"PRIdMAX".%03ld\n", (intmax_t)s, ms);
+    // fileLog(timestamp_msg);
 
     // printf("  timestamp: %u.%u\n", (uint32_t) (timestamp / 1000), (uint32_t) (timestamp % 1000));
     printf("  %s", timestamp_msg);

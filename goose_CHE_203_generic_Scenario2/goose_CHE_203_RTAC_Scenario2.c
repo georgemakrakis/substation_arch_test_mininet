@@ -172,6 +172,10 @@ void *threadedPublisher(void *input)
     int min_interval = 10;
     int publish_interval = min_interval;
     int max_interval = 100;
+
+    // NOTE: Used as a simple condition to increase the StNum
+    int max_i_2 = 50;
+
     while (1) {
 
          if (GoosePublisher_publish(publisher, dataSetValuesTo651R_2) == -1 
@@ -206,9 +210,13 @@ void *threadedPublisher(void *input)
         else if (i != 0 && publish_interval >= max_interval){
             publish_interval = max_interval;
             GoosePublisher_setTimeAllowedToLive(publisher, 2 * max_interval);
+            GoosePublisher_setTimeAllowedToLive(publisher_2, 2 * max_interval);
+            GoosePublisher_setTimeAllowedToLive(publisher_3, 2 * max_interval);
         } 
 
         i++;
+
+        // TODO: Need to add condition that will initiate step j)
 
         if (updated_651R_2 == 1){
             
