@@ -99,7 +99,7 @@ gooseListener(GooseSubscriber subscriber, void* parameter)
         for (int i=0; i<values_size; i++){
             MmsValue* elementValue = MmsValue_getElement(values, i);
 
-            if (elementValue && strcmp(GooseSubscriber_getGoCbRef(subscriber), "simple_651R_2/PRO$CO$TEST") == 0) {
+            if (elementValue && strcmp(GooseSubscriber_getGoCbRef(subscriber), "SEL_RTAC/LLN0$GO$GooseDSet1") == 0) {
                 printf("VALUES FROM RTAC\n");
 
                 LinkedList prev_Val = LinkedList_get(dataSetValuesReceivedFromRTAC, i);
@@ -232,7 +232,7 @@ main(int argc, char **argv)
     printf("GOOSE subscriber 651R_2 configuration initiated...\n");
         
     // This should be sub for data from RTAC
-    subscriber = GooseSubscriber_create("simple_651R_2/PRO$CO$TEST", NULL);
+    subscriber = GooseSubscriber_create("SEL_RTAC/LLN0$GO$GooseDSet1", NULL);
     uint8_t dstMac[6] = {0x01,0x0c,0xcd,0x01,0x00,0x01};
     GooseSubscriber_setDstMac(subscriber, dstMac);
     GooseSubscriber_setAppId(subscriber, 1001);
@@ -270,8 +270,10 @@ main(int argc, char **argv)
 
     publisher = GoosePublisher_create(&gooseCommParameters, interface);
 
-    GoosePublisher_setGoCbRef(publisher, "simple_651R_2/PRO$CO$BCACSWI2");
-    GoosePublisher_setDataSetRef(publisher, "simple_651R_2/PRO$BCACSWI2_DataSet");
+    // GoosePublisher_setGoCbRef(publisher, "simple_651R_2/PRO$CO$BCACSWI2");
+    GoosePublisher_setGoCbRef(publisher, "SEL_651R_2/LLN0$GO$GooseDSet1");
+    // GoosePublisher_setDataSetRef(publisher, "simple_651R_2/PRO$BCACSWI2_DataSet");
+    GoosePublisher_setDataSetRef(publisher, "SEL_651R_2/LLN0$GooseDSet1");
 
 
     pthread_t tid_rec;

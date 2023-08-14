@@ -102,7 +102,7 @@ gooseListener(GooseSubscriber subscriber, void* parameter)
         for (int i=0; i<values_size; i++){
             MmsValue* elementValue = MmsValue_getElement(values, i);
 
-            if (elementValue && strcmp(GooseSubscriber_getGoCbRef(subscriber), "simple_451_2/PRO$CO$BCACSWI2") == 0) {
+            if (elementValue && strcmp(GooseSubscriber_getGoCbRef(subscriber), "SEL_451_2/LLN0$GO$GooseDSet1") == 0) {
                 printf("VALUES FROM 451_2\n");
 
                 LinkedList prev_Val = LinkedList_get(dataSetValuesReceivedFrom451_2, i);
@@ -259,7 +259,7 @@ main(int argc, char **argv)
     printf("GOOSE subscriber 487B_2 configuration initiated...\n");
         
     // This should be sub for data from 451_2
-    subscriber = GooseSubscriber_create("simple_451_2/PRO$CO$BCACSWI2", NULL);
+    subscriber = GooseSubscriber_create("SEL_451_2/LLN0$GO$GooseDSet1", NULL);
     uint8_t dstMac[6] = {0x01,0x0c,0xcd,0x01,0x00,0x09};
     GooseSubscriber_setDstMac(subscriber, dstMac);
     GooseSubscriber_setAppId(subscriber, 1009);
@@ -315,11 +315,15 @@ main(int argc, char **argv)
     publisher = GoosePublisher_create(&gooseCommParameters, interface);
     publisher_2 = GoosePublisher_create(&gooseCommParameters_2, interface);
 
-    GoosePublisher_setGoCbRef(publisher, "simple_487B_2/PRO$CO$BCACSWI2");
-    GoosePublisher_setDataSetRef(publisher, "simple_487B_2/PRO$BCACSWI2_DataSet");
+    // GoosePublisher_setGoCbRef(publisher, "simple_487B_2/PRO$CO$BCACSWI2");
+    GoosePublisher_setGoCbRef(publisher, "SEL_487B_2/LLN0$GO$GooseDSet1");
+    // GoosePublisher_setDataSetRef(publisher, "simple_487B_2/PRO$BCACSWI2_DataSet");
+    GoosePublisher_setDataSetRef(publisher, "SEL_487B_2/LLN0$GooseDSet1");
 
-    GoosePublisher_setGoCbRef(publisher_2, "simple_487B_2/PRO$CO$BCACSWI2_2");
-    GoosePublisher_setDataSetRef(publisher_2, "simple_487B_2/PRO$BCACSWI2_2_DataSet");
+    // GoosePublisher_setGoCbRef(publisher_2, "simple_487B_2/PRO$CO$BCACSWI2_2");
+    GoosePublisher_setGoCbRef(publisher_2, "SEL_487B_2/LLN0$GO$GooseDSet2");
+    // GoosePublisher_setDataSetRef(publisher_2, "simple_487B_2/PRO$BCACSWI2_2_DataSet");
+    GoosePublisher_setDataSetRef(publisher_2, "SEL_487B_2/LLN0$GooseDSet2");
 
 
     pthread_t tid_rec;
