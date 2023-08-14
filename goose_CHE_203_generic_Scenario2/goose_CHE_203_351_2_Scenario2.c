@@ -32,7 +32,7 @@ static
 LinkedList dataSetValuesTo351_2;
 
 static
-LinkedList dataSetValuesTo487B_2;
+LinkedList dataSetValuesToRTAC;
 
 int updated_451_2 = 0;
 
@@ -162,7 +162,7 @@ void *threadedPublisher(void *input)
 
     while (1) {
 
-        if (GoosePublisher_publish(publisher, dataSetValuesTo487B_2) == -1){
+        if (GoosePublisher_publish(publisher, dataSetValuesToRTAC) == -1){
             printf("Error sending message!\n");
         }
         printf("Publishing...\n");
@@ -186,17 +186,17 @@ void *threadedPublisher(void *input)
             
             printf("=================== STEP B)  ===================");
             
-            int values_size = LinkedList_size(dataSetValuesTo487B_2);
+            int values_size = LinkedList_size(dataSetValuesToRTAC);
 
             for (int i=0; i<values_size; i++){
 
                 // LinkedList prev_Val = LinkedList_get(dataSetValuesToRTAC, i);
-                LinkedList prev_Val = LinkedList_get(dataSetValuesTo487B_2, 0);
+                LinkedList prev_Val = LinkedList_get(dataSetValuesToRTAC, 0);
 
                 MmsValue* value = (MmsValue*) LinkedList_getData(prev_Val);
 
-                LinkedList_remove(dataSetValuesTo487B_2, value);
-                LinkedList_add(dataSetValuesTo487B_2, MmsValue_newIntegerFromInt32(0));
+                LinkedList_remove(dataSetValuesToRTAC, value);
+                LinkedList_add(dataSetValuesToRTAC, MmsValue_newIntegerFromInt32(0));
             }
 
             GoosePublisher_increaseStNum(publisher);
@@ -258,7 +258,7 @@ main(int argc, char **argv)
 
     dataSetValuesReceivedFromRTAC = LinkedList_create();
 
-    dataSetValuesTo487B_2 = LinkedList_create();
+    dataSetValuesToRTAC = LinkedList_create();
 
     CommParameters gooseCommParameters;
     CommParameters gooseCommParameters_2;
@@ -269,7 +269,7 @@ main(int argc, char **argv)
     // Breaker status (for device No ?) 0/1 or Open/Close.
     // Should be CLOSED initially
     // For 25
-    LinkedList_add(dataSetValuesTo487B_2, MmsValue_newIntegerFromInt32(1));
+    LinkedList_add(dataSetValuesToRTAC, MmsValue_newIntegerFromInt32(1));
 
     // Breaker status (for device No ?) 0/1 or Open/Close.
     LinkedList_add(dataSetValuesReceivedFromRTAC,  MmsValue_newIntegerFromInt32(0));

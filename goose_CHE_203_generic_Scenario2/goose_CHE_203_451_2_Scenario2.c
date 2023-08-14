@@ -182,7 +182,7 @@ void *threadedPublisher(void *input)
 
         if (updated_451_2 == 1){
             
-            printf("=================== STEP F)  ===================");
+            printf("=================== STEP F)  ===================\n");
             
             int values_size = LinkedList_size(dataSetValuesTo487B_2);
 

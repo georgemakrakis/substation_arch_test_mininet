@@ -204,6 +204,8 @@ void *threadedPublisher(void *input)
     // NOTE: Used as a simple condition to increase the StNum
     int max_i_2 = 50;
 
+    int step_e_done = 0;
+
     while (1) {
 
          if (GoosePublisher_publish(publisher, dataSetValuesTo651R_2) == -1 
@@ -218,7 +220,7 @@ void *threadedPublisher(void *input)
                 publish_interval = min_interval;
                 GoosePublisher_setTimeAllowedToLive(publisher, 2 * max_interval);
                 GoosePublisher_setTimeAllowedToLive(publisher_2, 2 * max_interval);
-                GoosePublisher_setTimeAllowedToLive(publisher_2, 3 * publish_interval);
+                GoosePublisher_setTimeAllowedToLive(publisher_3, 2 * max_interval);
         }
         else if (i != 0 && publish_interval < max_interval){
             publish_interval = 2 * publish_interval;
@@ -246,8 +248,47 @@ void *threadedPublisher(void *input)
 
         // TODO: Need to add condition that will initiate step j)
 
+        if(i == max_i_2 && step_e_done == 0) {
+            printf("=================== ISSUE FIXED, RESTORING ( STEP J) ) ===================\n");
+
+            // Close HV2
+
+            LinkedList prev_Val = LinkedList_get(dataSetValuesTo651R_2, 0);
+            MmsValue* value = (MmsValue*) LinkedList_getData(prev_Val);
+            LinkedList_remove(dataSetValuesTo651R_2, value);
+            LinkedList_add(dataSetValuesTo651R_2, MmsValue_newIntegerFromInt32(1));
+            
+            // Close 21
+            prev_Val = LinkedList_get(dataSetValuesTo787, 0);
+            value = (MmsValue*) LinkedList_getData(prev_Val);
+            LinkedList_remove(dataSetValuesTo787, value);
+            LinkedList_add(dataSetValuesTo787, MmsValue_newIntegerFromInt32(1));
+
+            // Open 111 and 112
+            prev_Val = LinkedList_get(dataSetValuesTo451_2, 0);
+            value = (MmsValue*) LinkedList_getData(prev_Val);
+            LinkedList_remove(dataSetValuesTo451_2, value);
+            LinkedList_add(dataSetValuesTo451_2, MmsValue_newIntegerFromInt32(0));
+
+            prev_Val = LinkedList_get(dataSetValuesTo451_2, 0);
+            value = (MmsValue*) LinkedList_getData(prev_Val);
+            LinkedList_remove(dataSetValuesTo451_2, value);
+            LinkedList_add(dataSetValuesTo451_2, MmsValue_newIntegerFromInt32(0));
+
+            GoosePublisher_increaseStNum(publisher);
+            GoosePublisher_increaseStNum(publisher_2);
+            GoosePublisher_increaseStNum(publisher_3);
+
+            publish_interval = min_interval;
+
+            i = 0;
+            step_e_done = 1;
+        }
+
         if (updated_651R_2 == 1 && updated_487B_2 == 1 && updated_351_2 == 1){
             
+            printf("=================== STEPS C) D) E) ===================\n");
+
             // Open 21
             LinkedList prev_Val = LinkedList_get(dataSetValuesTo787, 0);
             MmsValue* value = (MmsValue*) LinkedList_getData(prev_Val);
@@ -431,7 +472,7 @@ main(int argc, char **argv)
     // GoosePublisher_setGoCbRef(publisher_2, "simple_787_2/PRO$CO$TEST_2");
     GoosePublisher_setGoCbRef(publisher_2, "SEL_RTAC/LLN0$GO$GooseDSet2");
     // GoosePublisher_setDataSetRef(publisher_2, "simple_787_2/PRO$TEST_DataSet_2");
-    GoosePublisher_setDataSetRef(publisher_3, "SEL_RTAC/LLN0$DSet2");
+    GoosePublisher_setDataSetRef(publisher_2, "SEL_RTAC/LLN0$DSet2");
 
     // GoosePublisher_setGoCbRef(publisher_3, "simple_451_2/PRO$CO$TEST_3");
     GoosePublisher_setGoCbRef(publisher_3, "SEL_RTAC/LLN0$GO$GooseDSet3");
