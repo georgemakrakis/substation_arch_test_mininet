@@ -186,7 +186,7 @@ gooseListener(GooseSubscriber subscriber, void* parameter)
                 // Update the values of dataSetValuesReceivedFrom651R_2
                 // TODO: Can that be done outside the loop with direct assignment somehow?
                 // TODO: Shall we also move the if statement somewhere outside the loop?
-                if (strcmp(GooseSubscriber_getGoCbRef(subscriber), "simple_651R_2/PRO$CO$BCACSWI2") == 0){
+                if (strcmp(GooseSubscriber_getGoCbRef(subscriber), "SEL_651R_2/LLN0$GO$GooseDSet1") == 0){
                         
                         LinkedList prev_Val = LinkedList_get(dataSetValuesReceivedFrom651R_2, i);
 
@@ -205,7 +205,7 @@ gooseListener(GooseSubscriber subscriber, void* parameter)
 
     
 
-    if (strcmp(GooseSubscriber_getGoCbRef(subscriber), "simple_651R_2/PRO$CO$BCACSWI2") == 0){
+    if (strcmp(GooseSubscriber_getGoCbRef(subscriber), "SEL_651R_2/LLN0$GO$GooseDSet1") == 0){
 
         if(updated == 1){
             // Open 21
@@ -805,14 +805,14 @@ main(int argc, char **argv)
         {
             printf("RTAC GOOSE configuration initiated...\n");
 
-            GoosePublisher_setGoCbRef(publisher, "simple_651R_2/PRO$CO$TEST");
-            GoosePublisher_setDataSetRef(publisher, "simple_651R_2/PRO$TEST_DataSet");
+            GoosePublisher_setGoCbRef(publisher, "SEL_RTAC/LLN0$GO$GooseDSet1");
+            GoosePublisher_setDataSetRef(publisher, "SEL_RTAC/LLN0$DSet1");
 
-            GoosePublisher_setGoCbRef(publisher_2, "simple_787_2/PRO$CO$TEST_2");
-            GoosePublisher_setDataSetRef(publisher_2, "simple_787_2/PRO$TEST_DataSet_2");
+            GoosePublisher_setGoCbRef(publisher_2, "SEL_RTAC/LLN0$GO$GooseDSet2");
+            GoosePublisher_setDataSetRef(publisher_2, "SEL_RTAC/LLN0$DSet2");
 
-            GoosePublisher_setGoCbRef(publisher_3, "simple_651R_2/PRO$CO$TEST_3");
-            GoosePublisher_setDataSetRef(publisher_3, "simple_651R_2/PRO$TEST_DataSet_3");
+            GoosePublisher_setGoCbRef(publisher_3, "SEL_RTAC/LLN0$GO$GooseDSet3");
+            GoosePublisher_setDataSetRef(publisher_3, "SEL_RTAC/LLN0$DSet3");
         } 
         // NOTE: JUST FOR TESTING
         else if (strcmp(device_name, "651R_2") == 0)
@@ -821,8 +821,8 @@ main(int argc, char **argv)
             printf("651R_2 GOOSE configuration initiated...\n");
 
             // GoosePublisher_setGoCbRef(publisher, "simple_651R_2/LLN0$CO$BCACSWI2$Pos$ctlVal");
-            GoosePublisher_setGoCbRef(publisher, "simple_651R_2/PRO$CO$BCACSWI2");
-            GoosePublisher_setDataSetRef(publisher, "simple_651R_2/PRO$BCACSWI2_DataSet");
+            GoosePublisher_setGoCbRef(publisher, "SEL_651R_2/LLN0$GO$GooseDSet1");
+            GoosePublisher_setDataSetRef(publisher, "SEL_651R_2/LLN0$GooseDSet1");
         }
         else if (strcmp(device_name, "787_2") == 0)
         {
@@ -835,8 +835,8 @@ main(int argc, char **argv)
         {
             printf("451_2 GOOSE configuration initiated...\n");
 
-            GoosePublisher_setGoCbRef(publisher, "simple_451_2/PRO$CO$BCACSWI2");
-            GoosePublisher_setDataSetRef(publisher, "simple_451_2/PRO$BCACSWI2_DataSet");
+            GoosePublisher_setGoCbRef(publisher, "SEL_451_2/LLN0$GO$GooseDSet1");
+            GoosePublisher_setDataSetRef(publisher, "SEL_451_2/LLN0$GooseDSet1");
         }
         else
         {
