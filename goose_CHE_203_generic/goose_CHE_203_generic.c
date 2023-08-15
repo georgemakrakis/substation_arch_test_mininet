@@ -458,22 +458,16 @@ void *threadedPublisher(void *input)
                 printf("=================== ISSUE FIXED, RESTORING ( STEP E) ) ===================");
                 
                 // For RTAC --> 651-2
-                // Trip
-                LinkedList prev_Val_0 = LinkedList_get(dataSetValues, 0);
-                MmsValue* value = (MmsValue*) LinkedList_getData(prev_Val_0);
-
-                LinkedList_remove(dataSetValues, value);
-                LinkedList_add(dataSetValues, MmsValue_newIntegerFromInt32(0));
 
                 // Close
-                LinkedList prev_Val_1 = LinkedList_get(dataSetValues, 1);
-                value = (MmsValue*) LinkedList_getData(prev_Val_1);
+                LinkedList prev_Val_1 = LinkedList_get(dataSetValues, 0);
+                MmsValue* value = (MmsValue*) LinkedList_getData(prev_Val_1);
 
                 LinkedList_remove(dataSetValues, value);
                 LinkedList_add(dataSetValues, MmsValue_newIntegerFromInt32(1));
 
                 // For RTAC --> 787_2
-                prev_Val_0 = LinkedList_get(dataSetValuesTo787, 0);
+                LinkedList prev_Val_0 = LinkedList_get(dataSetValuesTo787, 0);
                 
                 value = (MmsValue*) LinkedList_getData(prev_Val_0);
 
@@ -594,7 +588,7 @@ main(int argc, char **argv)
         
         // This should be sub for data from 651R_2
         // TODO: We need for the rest of them as well.
-        subscriber = GooseSubscriber_create("simple_651R_2/PRO$CO$BCACSWI2", NULL);
+        subscriber = GooseSubscriber_create("SEL_651R_2/LLN0$GO$GooseDSet1", NULL);
         uint8_t dstMac[6] = {0x01,0x0c,0xcd,0x01,0x00,0x02};
         GooseSubscriber_setDstMac(subscriber, dstMac);
         GooseSubscriber_setAppId(subscriber, 1002);
@@ -607,7 +601,7 @@ main(int argc, char **argv)
         // TODO: We need for the rest of them as well.
 
         // TODO: Chahnge the below from TEST to something else.
-        subscriber = GooseSubscriber_create("simple_651R_2/PRO$CO$TEST", NULL);
+        subscriber = GooseSubscriber_create("SEL_RTAC/LLN0$GO$GooseDSet1", NULL);
         uint8_t dstMac[6] = {0x01,0x0c,0xcd,0x01,0x00,0x01};
         GooseSubscriber_setDstMac(subscriber, dstMac);
         GooseSubscriber_setAppId(subscriber, 1001);
@@ -617,7 +611,7 @@ main(int argc, char **argv)
         printf("GOOSE subscriber 787_2 configuration initiated...\n");
 
         // TODO: After testing rename this to just "subscriber"
-        subscriber = GooseSubscriber_create("simple_651R_2/PRO$CO$TEST_2", NULL);
+        subscriber = GooseSubscriber_create("SEL_RTAC/LLN0$GO$GooseDSet2", NULL);
         uint8_t dstMac[6] = {0x01,0x0c,0xcd,0x01,0x00,0x03};
         GooseSubscriber_setDstMac(subscriber, dstMac);
         GooseSubscriber_setAppId(subscriber, 1003);
@@ -627,7 +621,7 @@ main(int argc, char **argv)
         printf("GOOSE 451_2 configuration initiated...\n");
 
         // TODO: After testing rename this to just "subscriber"
-        subscriber = GooseSubscriber_create("simple_651R_2/PRO$CO$TEST_3", NULL);
+        subscriber = GooseSubscriber_create("SEL_RTAC/LLN0$GO$GooseDSet3", NULL);
         uint8_t dstMac[6] = {0x01,0x0c,0xcd,0x01,0x00,0x04};
         GooseSubscriber_setDstMac(subscriber, dstMac);
         GooseSubscriber_setAppId(subscriber, 1004);
@@ -664,7 +658,7 @@ main(int argc, char **argv)
         // LinkedList_add(dataSetValues, MmsValue_newBoolean(true));
 
         // Trip command (for device No ?) 0/1 NoTrip/Trip.
-        LinkedList_add(dataSetValues, MmsValue_newIntegerFromInt32(0));
+        // LinkedList_add(dataSetValues, MmsValue_newIntegerFromInt32(0));
         // NOTE: Disable for now might be enabled later.
         // LinkedList_add(dataSetValues, MmsValue_newBoolean(false));
 
@@ -828,8 +822,8 @@ main(int argc, char **argv)
         {
             printf("787_2 GOOSE configuration initiated...\n");
             
-            GoosePublisher_setGoCbRef(publisher, "simple_787_2/PRO$CO$BCACSWI2");
-            GoosePublisher_setDataSetRef(publisher, "simple_787_2/PRO$BCACSWI2_DataSet");
+            GoosePublisher_setGoCbRef(publisher, "SEL_787_2/LLN0$GO$GooseDSet1");
+            GoosePublisher_setDataSetRef(publisher, "SEL_787_2/LLN0$GooseDSet1");
         }
         else if (strcmp(device_name, "451_2") == 0)
         {

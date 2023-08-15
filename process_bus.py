@@ -465,7 +465,14 @@ class process_bus(app_manager.RyuApp):
             # For RTAC --> 787
             "01:0c:cd:01:00:03" : [7],
             # For RTAC --> 451
-            "01:0c:cd:01:00:04" : [2]
+            "01:0c:cd:01:00:04" : [2],
+            
+            # Allow also these two even if they do not play any role
+            # 451
+            "01:0c:cd:01:00:07" : [10],
+            # 787
+            "01:0c:cd:01:00:08" : [10]
+            
             #("01:0c:cd:01:00:01", [10, 5])
             #("01:0c:cd:01:00:01", 16)
         }
