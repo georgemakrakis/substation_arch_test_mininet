@@ -132,7 +132,7 @@ gooseListener(GooseSubscriber subscriber, void* parameter)
 
     char *timestamp_msg = (char*)malloc(70 * sizeof(char));
     sprintf(timestamp_msg, "packet timestamp: %u.%u\n", (uint32_t) (timestamp / 1000), (uint32_t) (timestamp % 1000));
-    fileLog(timestamp_msg);
+    // fileLog(timestamp_msg);
 
     // Creating loggging for the device
     // long            ms; // Milliseconds
