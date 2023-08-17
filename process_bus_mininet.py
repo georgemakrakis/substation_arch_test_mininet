@@ -110,11 +110,18 @@ def main():
     net.build()
     net.start()
 
+    multicast_mapping = {
+        "RTAC" : "01:0c:cd:01:00:01"
+    }
+
+    scenario_1_hosts = ["RTAC", "651R_2", "787_2", "451_2"]
     
     hosts = net.hosts
     for host in hosts:
-        host.cmd("tcpdump -i {0}-eth0 ether host 01:0c:cd:01:00:02 -w ./exp_1/exp_1_{0}.pcap &".format(host.name))
-        host.cmd("bash -c '/home/mininet/substation_arch_test/goose_CHE_203_generic/goose_CHE_203_generic {0}-eth0 {0}' &".format(host.name))
+        if host.name in scenario_1_hosts:
+            # host.cmd("tcpdump -i {0}-eth0 (ether host 01:0c:cd:01:00:01 or ether host 01:0c:cd:01:00:02 or ether host 01:0c:cd:01:00:03 or ether host 01:0c:cd:01:00:04 or ether host 01:0c:cd:01:00:07 or ether host 01:0c:cd:01:00:08) -w ./exp_1/exp_1_{0}.pcap &".format(host.name))
+            host.cmd("tcpdump -i {0}-eth0 -w ./exp_1/exp_1_{0}.pcap &".format(host.name))
+            host.cmd("bash -c '/home/mininet/substation_arch_test/goose_CHE_203_generic/goose_CHE_203_generic {0}-eth0 {0}' &".format(host.name))
     
     CLI(net)
 
