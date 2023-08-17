@@ -10,6 +10,9 @@ Below we should visualize the topology, with something like the following:
 """
 
 from mininet.topo import Topo
+from mininet.net import Mininet
+from mininet.node import OVSSwitch, Controller, RemoteController
+from mininet.cli import CLI
 
 class process_bus( Topo ):
     def build( self ):
@@ -96,4 +99,28 @@ class process_bus( Topo ):
         self.addLink( IDS, switch1, port1=20, port2=20 )
 
 
-topos = { "process_bus": ( lambda: process_bus() ) }
+# topos = { "process_bus": ( lambda: process_bus() ) }
+
+
+def main():
+    topo = process_bus()
+    net = Mininet(topo, build=False, waitConnected=True )
+    control = RemoteController('c0', ip='127.0.0.1', port=6633) 
+    net.addController(control)
+    net.build()
+    net.start()
+
+    
+    hosts = net.hosts
+    for host in hosts:
+        host.cmd("tcpdump -i {0}-eth0 ether host 01:0c:cd:01:00:02 -w ./exp_1/exp_1_{0}.pcap &".format(host.name))
+        host.cmd("bash -c '/home/mininet/substation_arch_test/goose_CHE_203_generic/goose_CHE_203_generic {0}-eth0 {0}' &".format(host.name))
+    
+    CLI(net)
+
+    net.stop()
+    return
+    
+if __name__ == '__main__':
+
+    main()

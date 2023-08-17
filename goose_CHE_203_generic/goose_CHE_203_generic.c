@@ -266,7 +266,7 @@ void *threadedReceiver(void *input)
         }
     }
     else {
-        printf("Failed to start GOOSE subscriber. Reason can be that the Ethernet interface doesn't exist or root permission are required.\n");
+        printf("Failed to start GOOSE subscriber. Reason can be that the Ethernet interface doesn't exist or root permissions are required.\n");
     }
 }
 
