@@ -98,6 +98,9 @@ def calculate (pcap_1, pcap_2):
     global total
     global final_lst
 
+    next_sqNum = 0
+    next_stNum = 1
+
     for index, packet in enumerate(PcapReader(pcap_1)):
 
         if gooseTest(packet):
@@ -124,7 +127,6 @@ def calculate (pcap_1, pcap_2):
                 lst_1_1.append(packet.time)
                 total += 1
             elif eth.dst == "01:0c:cd:01:00:02":
-                print(gd[6])
                 lst_2_1.append(packet.time)
                 total += 1
             elif eth.dst == "01:0c:cd:01:00:03":
@@ -139,9 +141,15 @@ def calculate (pcap_1, pcap_2):
     total = 0
 
     for index, packet in enumerate(PcapReader(pcap_2)):
-        eth = packet[Ether]
         # TODO: Here we should also record the stNum and sqNum to correlate them later
         # We should also do it for the rest of the multicast addresses.
+
+        # if (index == 0):
+        #     print("INDEX 0 IS {0}".format(gd[6]))
+
+        # if (index == 1):
+        #     print("INDEX 1 IS {0}".format(gd[6]))
+        #     continue
 
         if gooseTest(packet):
             # Use SCAPY to parse the Goose header and the Goose PDU header
@@ -155,15 +163,23 @@ def calculate (pcap_1, pcap_2):
 
             # NOTE: To fix weird duplicate packet problem, might not needed
             # if (index == 0 or index == 1):
-            if (index == 1):
-                continue
-
+            
+            eth = packet[Ether]
             if eth.dst == "01:0c:cd:01:00:01":
                 lst_1_2.append(packet.time)
                 total += 1
             elif eth.dst == "01:0c:cd:01:00:02":
-                print(gd[6])
-                lst_2_2.append(packet.time)
+                
+                if(next_stNum != gd[5]):
+                    next_stNum = gd[5]
+                    next_sqNum = 0
+
+                if(next_sqNum == gd[6]):
+                    # print("HERE")
+                    next_sqNum += 1     
+                    print(gd[6])
+                    lst_2_2.append(packet.time)
+                
                 total += 1
             elif eth.dst == "01:0c:cd:01:00:03":
                 lst_3_2.append(packet.time)
@@ -201,10 +217,12 @@ def calculate (pcap_1, pcap_2):
     
     final_lst = []
 
-    for index, ts in enumerate(lst_2_1):
+    # for index, ts in enumerate(lst_2_1):
+    for index, ts in enumerate(lst_2_2):
         # print("Index {0}".format(index))
         try:
-            final_lst.append(ts - lst_2_2[index])
+            # final_lst.append(ts - lst_2_2[index])
+            final_lst.append(ts - lst_2_1[index])
         except IndexError as err:
             print("Index Error at {0}".format(index))
             continue
@@ -213,6 +231,7 @@ def calculate (pcap_1, pcap_2):
     print("01:0c:cd:01:00:02")
 
     if final_lst :
+        print("FINAL len {0}".format(len(final_lst)))
         print("Average (mean) time between two packets: {0}".format(statistics.mean(final_lst)))
         print("Standard deviation: {0}".format(statistics.stdev(final_lst)))
         print("Variance: {0}".format(statistics.variance(final_lst)))
