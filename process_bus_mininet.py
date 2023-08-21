@@ -97,12 +97,13 @@ def main(scenario=0):
     hosts = net.hosts
     if scenario == 1:
         for host in hosts:
+            # print(host.cmd("ip a"))
             if host.name in scenario_1_hosts:
                 # host.cmd("tcpdump -i {0}-eth0 (ether host 01:0c:cd:01:00:01 or ether host 01:0c:cd:01:00:02 or ether host 01:0c:cd:01:00:03 or ether host 01:0c:cd:01:00:04 or ether host 01:0c:cd:01:00:07 or ether host 01:0c:cd:01:00:08) -w ./exp_1/exp_1_{0}.pcap &".format(host.name))
                 host.cmd("tcpdump -i {0}-eth0 -w ./exp_1/exp_1_{0}.pcap &".format(host.name))
                 host.cmd("bash -c '/home/mininet/substation_arch_test/goose_CHE_203_generic/goose_CHE_203_generic {0}-eth0 {0}' &".format(host.name))
     
-    if scenario == 2:
+    elif scenario == 2:
         
         # We need to have this specific sequence to make sure the messages arrive in a proper order
         # Therefore we hardcode the commands.

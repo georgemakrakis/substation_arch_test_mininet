@@ -426,7 +426,7 @@ class process_bus(app_manager.RyuApp):
             del waiters_per_datapath[mod.xid]
             self.flow_log(f"{log_action}", mod.to_jsondict())
         except Exception as ex:
-            print(f"set_meter exception: {ex}")
+            print(f"add_flow exception: {ex}")
         
     def get_mac_to_port(self, dpid):
         try:
@@ -548,7 +548,7 @@ class process_bus(app_manager.RyuApp):
 
         if self.scenario == 1:
             goose_list = goose_list_scenario_1
-        elif self.scenario == 1:
+        elif self.scenario == 2:
             goose_list = goose_list_scenario_2
             
         in_goose_list = []
