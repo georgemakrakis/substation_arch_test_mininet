@@ -291,6 +291,8 @@ void *threadedPublisher(void *input)
     // int max_interval = 100;
     int max_interval = 1000;
     if (strcmp(device_name, "651R_2") == 0) {
+        // The min_interval is for testing here
+        min_interval = 30;
         max_interval = 100;
     }
     else  if (strcmp(device_name, "787_2") == 0) {
@@ -847,6 +849,7 @@ main(int argc, char **argv)
         publisher_3 = NULL;
     }
 
+    
 
     GooseSubscriber_setListener(subscriber, gooseListener, NULL);
 
@@ -867,7 +870,13 @@ main(int argc, char **argv)
     pub_struct->publisher_3 = publisher_3;
     pub_struct->myid = tid_pub;
 
+
     pthread_create(&tid_rec, NULL, threadedReceiver, (void *)rec_struct);
+    
+    // if (strcmp(device_name, "651R_2")){
+    //     sleep(2);
+    // }
+
     pthread_create(&tid_pub, NULL, threadedPublisher, (void *)pub_struct);
 
     sleep(1000000);

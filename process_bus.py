@@ -572,7 +572,12 @@ class process_bus(app_manager.RyuApp):
             
             self.add_flow(datapath=datapath, priority=100, command=command, match=match, inst=inst, waiters=waiters, log_action="packet_in", table_id=1, timeout=0)
             
-            # Table miss flow entry for GOOSE (with VLAN) with lowest priority than the above
+
+            # time.sleep(3)
+
+            
+
+             # Table miss flow entry for GOOSE (with VLAN) with lowest priority than the above
             match = parser.OFPMatch(eth_type=ether_types.ETH_TYPE_8021Q)
             actions = [parser.OFPActionGroup(group_id=50)]
             inst = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS,
@@ -585,16 +590,19 @@ class process_bus(app_manager.RyuApp):
             inst = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS,
                                              actions)]
             self.add_flow(datapath=datapath, priority=2, command=command, match=match, inst=inst, waiters=waiters, log_action="packet_in", table_id=1, timeout=0)
-            
+
             data = None
             if msg.buffer_id == ofproto.OFP_NO_BUFFER:
+                # print("Setting DATA!!!!")
                 data = msg.data
+                # print(data)
 
             out = parser.OFPPacketOut(datapath=datapath, buffer_id=msg.buffer_id,
                                   in_port=in_port, actions=actions, data=data)
+            
             datapath.send_msg(out)
 
-            # return
+            return
         # else:
         #     print("Multicast packet from dropped")
         #     return
