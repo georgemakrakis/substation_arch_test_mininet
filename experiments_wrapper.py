@@ -17,7 +17,7 @@ def run_process(program_command, program_type, wait_time):
     global handle_1
     global handle_2
     output = None
-    if program_type == "device":
+    if program_type == "controller":
         try:
             handle_1 = subprocess.Popen(program_command, stdout=subprocess.PIPE, preexec_fn=os.setsid)
             # handle_1 = subprocess.Popen(program_command, start_new_session=True, stdout=subprocess.PIPE)
@@ -30,14 +30,14 @@ def run_process(program_command, program_type, wait_time):
             # os.killpg(os.getpgid(handle_1.pid), signal.SIGTERM)
             os.killpg(os.getpgid(handle_1.pid), signal.SIGKILL)
 
-    elif program_type == "tcpdump":
+    elif program_type == "mininet":
         try:
             # handle_2 = subprocess.Popen(program_command, stdout=subprocess.PIPE, preexec_fn=os.setsid)
             handle_2 = subprocess.Popen(program_command, start_new_session=True, stdout=subprocess.PIPE)
             output = handle_2.stdout.read()
             # rc = handle_1.wait()   # at this point, if process is killed, the thread exits
             rc = handle_2.wait(timeout=wait_time)   # at this point, if process is killed, the thread exits
-            print("TCPDUMP PROGRAM {0}", rc)
+            print("MININET PROGRAM {0}", rc)
         except subprocess.TimeoutExpired:
             print("Timeout for tcpdump, terminating ...")
             # os.killpg(os.getpgid(handle_1.pid), signal.SIGTERM)
@@ -54,7 +54,7 @@ def run_process(program_command, program_type, wait_time):
 def main():
 
     # wait_time = 60
-    wait_time = 20
+    wait_time = 10
 
     # program_command = ["python", "timer.py", "10"]
     # NOTE: Below is an example of how each individual device should be run inside the simulation
@@ -67,33 +67,44 @@ def main():
     
     # program_type = "tcpdump"
     # p2 = threading.Thread(target=run_process, args=(tcpdump_command, program_type, wait_time, ))
-
-    program_command = ["sudo", "ryu", "run" ,"--verbose", "process_bus.py", "--config-file=params.conf"]
-    program_type = "device"
-    p1 = threading.Thread(target=run_process, args=(program_command, program_type, wait_time,))
     
-    program_command = ["sh", "topology_mininet.sh"]
-    program_type = "tcpdump"
-    p2 = threading.Thread(target=run_process, args=(program_command, program_type, wait_time, ))
+    # p2 = threading.Thread(target=run_process, args=(program_command, program_type, wait_time, ))
 
+    for i in range(0, 5):
 
-    p2.start()
-    p1.start()
-    p2.join(wait_time)
-    p1.join(wait_time)
+        program_command = ["sudo", "ryu", "run" ,"--verbose", "process_bus.py", "--config-file=params.conf"]
+        program_type = "controller"
+        p1 = threading.Thread(target=run_process, args=(program_command, program_type, wait_time,))
 
-    if handle_1:
-        # print("handle_1 here terminated")
-        handle_1.terminate()
-        # os.kill(handle_1.pid, signal.SIGTERM)
-        print("handle_1 here terminated")
-        os.killpg(os.getpgid(handle_1.pid), signal.SIGKILL)
+        # TODO: We need to have a variable for the scenario as well.
+        # program_command = ["sudo", "mn", "-c", "&&", "sudo", "python", "process_bus_mininet.py", "1", str(2)]
+        program_command = ["sudo", "python", "process_bus_mininet.py", "1", str(i)]
+        program_type = "mininet"
+        
+        p2 = threading.Thread(target=run_process, args=(program_command, program_type, wait_time, ))
+        p1.start()
+        p2.start()
+        p1.join(wait_time)
+        p2.join(wait_time)
 
-    
-    if handle_2:
-        handle_2.terminate()
-        print("handle_2 here terminated")
-        os.killpg(os.getpgid(handle_2.pid), signal.SIGKILL)
+        if handle_1:
+            # print("handle_1 here terminated")
+            handle_1.terminate()
+            # os.kill(handle_1.pid, signal.SIGTERM)
+            print("handle_1 here terminated")
+            os.killpg(os.getpgid(handle_1.pid), signal.SIGKILL)
+
+        
+        if handle_2:
+            handle_2.terminate()
+            print("handle_2 here terminated")
+            os.killpg(os.getpgid(handle_2.pid), signal.SIGKILL)
+
+        # time.sleep(12)
+
+        clear_mn = subprocess.run(["sudo", "mn", "-c"])
+
+        print(clear_mn.stdout)
 
     return
 

@@ -114,7 +114,7 @@ def main(scenario=0, run=1):
             # TODO: These are executed serially, need to be executed in parallel
             # (threads) so we will not loose packet on either sides.
             if host.name in scenario_1_hosts:
-                host.cmd("tcpdump -i {0}-eth0 -w ./{1}/exp_{2}_{0}.pcap &".format(host.name, new_dir, run))
+                host.cmd("tcpdump -i {0}-eth0 -w {1}/exp_{2}_{0}.pcap &".format(host.name, new_dir, run))
                 time.sleep(0.1)
                 # host.cmd("bash -c '/home/mininet/substation_arch_test/goose_CHE_203_generic/goose_CHE_203_generic {0}-eth0 {0}' &".format(host.name))
 
@@ -175,7 +175,9 @@ def main(scenario=0, run=1):
         # print(hosts)
         # print(hosts[7].cmd("ip a"))
 
-    CLI(net)
+    # CLI(net)
+
+    time.sleep(60)
 
     net.stop()
     return
