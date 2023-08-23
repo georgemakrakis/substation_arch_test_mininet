@@ -94,8 +94,17 @@ def goose_pdu_decode(encoded_data):
 # Measure the E2E delay of packets      
 
 def calculate (pcap_1, pcap_2):
-    # global total
-    # global final_lst
+    lst_1_1 = []
+    lst_1_2 = []
+
+    lst_2_1 = []
+    lst_2_2 = []
+
+    lst_3_1 = []
+    lst_3_2 = []
+
+    lst_4_1 = []
+    lst_4_2 = []
 
     next_sqNum = 0
     next_stNum = 1
@@ -136,9 +145,18 @@ def calculate (pcap_1, pcap_2):
                 lst_2_1.append(packet.time)
                 total += 1
             elif eth.dst == "01:0c:cd:01:00:03":
+                
+                # TODO: Needs to be fixed.
+                if (gd[5] == 4 and gd[6] > 20):
+                    break
+
                 lst_3_1.append(packet.time)
                 total += 1
             elif eth.dst == "01:0c:cd:01:00:04":
+                # TODO: Needs to be fixed.
+                if (gd[5] == 4 and gd[6] > 20):
+                    break
+
                 lst_4_1.append(packet.time)
                 total += 1
 
@@ -196,9 +214,17 @@ def calculate (pcap_1, pcap_2):
                 lst_2_2.append(packet.time)
                 total += 1
             elif eth.dst == "01:0c:cd:01:00:03":
+                
+                # TODO: Needs to be fixed.
+                if (gd[5] == 1 and (gd[6] == 0 or gd[6] == 1)):
+                    continue
+
                 lst_3_2.append(packet.time)
                 total += 1
             elif eth.dst == "01:0c:cd:01:00:04":
+                # TODO: Needs to be fixed.
+                if (gd[5] == 1 and (gd[6] == 0 or gd[6] == 1)):
+                    continue
                 lst_4_2.append(packet.time)
                 total += 1
 
@@ -270,7 +296,7 @@ def calculate (pcap_1, pcap_2):
     print("01:0c:cd:01:00:03")
 
     if final_lst :
-
+        print("FINAL len {0}".format(len(final_lst)))
         print("Average (mean) E2E delay: {0}".format(statistics.mean(final_lst)))
         print("Standard deviation: {0}".format(statistics.stdev(final_lst)))
         print("Variance: {0}".format(statistics.variance(final_lst)))
@@ -312,27 +338,44 @@ def main(pcap_1="", pcap_2=""):
         pcap_1 = None
         pcap_2 = None
 
-        for index, filename in enumerate(os.listdir(directory)):
-            f = os.path.join(directory, filename)
-            # checking if it is a file
-            if os.path.isfile(f):
-                print(f)
-                # if (index % 2) == 0:
-                #     pcap_1 = f
-                # elif (index % 2) != 0:
-                #     pcap_2 = f
+        # for index, filename in enumerate(os.listdir(directory)):
+        #     f = os.path.join(directory, filename)
+        #     # checking if it is a file
+        #     if os.path.isfile(f):
+        #         print(f)
+        #         # if (index % 2) == 0:
+        #         #     pcap_1 = f
+        #         # elif (index % 2) != 0:
+        #         #     pcap_2 = f
 
-                #     calculate(pcap_1=pcap_1, pcap_2=pcap_2)
+        #         #     calculate(pcap_1=pcap_1, pcap_2=pcap_2)
 
-                if (f == "../scenario_1_exp_{0}/exp_{0}_651R_2.pcap".format(i)):
-                    pcap_1 = f
-                elif (f == "../scenario_1_exp_{0}/exp_{0}_RTAC.pcap".format(i)):
-                    pcap_2 = f
+        #         if (f == "../scenario_1_exp_{0}/exp_{0}_651R_2.pcap".format(i)):
+        #             pcap_1 = f
+        #         elif (f == "../scenario_1_exp_{0}/exp_{0}_RTAC.pcap".format(i)):
+        #             pcap_2 = f
                 
-                if (pcap_1 and pcap_2):
-                    calculate(pcap_1=pcap_1, pcap_2=pcap_2)
-                    print("===============================")
-    
+        #         if (pcap_1 and pcap_2):
+        #             calculate(pcap_1=pcap_1, pcap_2=pcap_2)
+        #             print("===============================")
+
+        # :01 and :02
+        pcap_1 = "{0}/exp_{1}_651R_2.pcap".format(directory, i)
+        pcap_2 = "{0}/exp_{1}_RTAC.pcap".format(directory, i)
+        calculate(pcap_1=pcap_1, pcap_2=pcap_2)
+        print("===============================")
+
+        # :03
+        pcap_1 = "{0}/exp_{1}_787_2.pcap".format(directory, i)
+        pcap_2 = "{0}/exp_{1}_RTAC.pcap".format(directory, i)
+        calculate(pcap_1=pcap_1, pcap_2=pcap_2)
+        print("===============================")
+
+        # :04
+        pcap_1 = "{0}/exp_{1}_451_2.pcap".format(directory, i)
+        pcap_2 = "{0}/exp_{1}_RTAC.pcap".format(directory, i)
+        calculate(pcap_1=pcap_1, pcap_2=pcap_2)
+        print("===============================")
     
 
     return
