@@ -50,6 +50,11 @@ lst_4_1 = []
 lst_4_2 = []
 
 
+final_lst_01 = []
+final_lst_02 = []
+final_lst_03 = []
+final_lst_04 = []
+
 multicast_addresses_scenario_1 = [
     "01:0c:cd:01:00:01",
     "01:0c:cd:01:00:02",
@@ -94,6 +99,12 @@ def goose_pdu_decode(encoded_data):
 # Measure the E2E delay of packets      
 
 def calculate (pcap_1, pcap_2):
+    global final_lst_01 
+    global final_lst_02 
+    global final_lst_03 
+    global final_lst_04
+
+
     lst_1_1 = []
     lst_1_2 = []
 
@@ -127,19 +138,25 @@ def calculate (pcap_1, pcap_2):
         
             # NOTE: Had one more packet in the first pcap so we remove the seond one here.    
             # if (index == 0 or index == 1):
-            if (index == 1):
-                continue
+            # if (index == 1):
+            #     continue
 
             eth = packet[Ether]
             # TODO: Here we should also record the stNum and sqNum to correlate them later
             # We should also do it for the rest of the multicast addresses.
             if eth.dst == "01:0c:cd:01:00:01":
+                # if (gd[5] == 1 and (gd[6] == 0)):
+                #     continue
+
+                if (gd[5] == 4 and gd[6] > 14):
+                    break
+
                 # print(gd[6])
                 lst_1_1.append(packet.time)
                 total += 1
             elif eth.dst == "01:0c:cd:01:00:02":
                 # if (gd[6] == 0):
-                if (index == 0):
+                if (gd[5] == 1 and (gd[6] == 0)):
                     continue
                  
                 lst_2_1.append(packet.time)
@@ -147,15 +164,15 @@ def calculate (pcap_1, pcap_2):
             elif eth.dst == "01:0c:cd:01:00:03":
                 
                 # TODO: Needs to be fixed.
-                if (gd[5] == 4 and gd[6] > 20):
-                    break
+                # if (gd[5] == 4 and gd[6] > 20):
+                #     break
 
                 lst_3_1.append(packet.time)
                 total += 1
             elif eth.dst == "01:0c:cd:01:00:04":
                 # TODO: Needs to be fixed.
-                if (gd[5] == 4 and gd[6] > 20):
-                    break
+                # if (gd[5] == 4 and gd[6] > 20):
+                #     break
 
                 lst_4_1.append(packet.time)
                 total += 1
@@ -190,8 +207,9 @@ def calculate (pcap_1, pcap_2):
             
             eth = packet[Ether]
             if eth.dst == "01:0c:cd:01:00:01":
-                if (index == 0):
+                if (gd[5] == 1 and (gd[6] == 0)):
                     continue
+               
                 lst_1_2.append(packet.time)
                 total += 1
             elif eth.dst == "01:0c:cd:01:00:02":
@@ -216,14 +234,16 @@ def calculate (pcap_1, pcap_2):
             elif eth.dst == "01:0c:cd:01:00:03":
                 
                 # TODO: Needs to be fixed.
-                if (gd[5] == 1 and (gd[6] == 0 or gd[6] == 1)):
+                # if (gd[5] == 1 and (gd[6] == 0 or gd[6] == 1)):
+                if (gd[5] == 1 and (gd[6] == 0)):
                     continue
 
                 lst_3_2.append(packet.time)
                 total += 1
             elif eth.dst == "01:0c:cd:01:00:04":
                 # TODO: Needs to be fixed.
-                if (gd[5] == 1 and (gd[6] == 0 or gd[6] == 1)):
+                # if (gd[5] == 1 and (gd[6] == 0 or gd[6] == 1)):
+                if (gd[5] == 1 and (gd[6] == 0)):
                     continue
                 lst_4_2.append(packet.time)
                 total += 1
@@ -232,28 +252,28 @@ def calculate (pcap_1, pcap_2):
 
     # if len(lst_1) == len(lst_2):
 
-    print("For {0} and {1} we have the following:".format(pcap_1, pcap_2))
+    # print("For {0} and {1} we have the following:".format(pcap_1, pcap_2))
 
     for index, ts in enumerate(lst_1_1):
         # print("Index {0}".format(index))
         try:
-            final_lst.append(ts - lst_1_2[index])
+            final_lst_01.append(ts - lst_1_2[index])
         except IndexError as err:
             # print("Index Error at {0}".format(index))
             continue
 
    
-    print("01:0c:cd:01:00:01")
+    # print("01:0c:cd:01:00:01")
 
-    if final_lst :
-
-        print("Average (mean) E2E delay: {0}".format(statistics.mean(final_lst)))
-        print("Standard deviation: {0}".format(statistics.stdev(final_lst)))
-        print("Variance: {0}".format(statistics.variance(final_lst)))
-        print("Min: {0}".format(min(final_lst)))
-        print("Max: {0}".format(max(final_lst)))
-        # Is the below correct?
-        print("Standard error of the mean {0}".format(float(statistics.stdev(final_lst))/math.sqrt(len(final_lst))))
+    # if final_lst :
+    #     print("FINAL len {0}".format(len(final_lst)))
+    #     print("Average (mean) E2E delay: {0}".format(statistics.mean(final_lst)))
+    #     print("Standard deviation: {0}".format(statistics.stdev(final_lst)))
+    #     print("Variance: {0}".format(statistics.variance(final_lst)))
+    #     print("Min: {0}".format(min(final_lst)))
+    #     print("Max: {0}".format(max(final_lst)))
+    #     # Is the below correct?
+    #     print("Standard error of the mean {0}".format(float(statistics.stdev(final_lst))/math.sqrt(len(final_lst))))
     
     final_lst = []
 
@@ -262,78 +282,78 @@ def calculate (pcap_1, pcap_2):
         # print("Index {0}".format(index))
         try:
             # final_lst.append(ts - lst_2_2[index])
-            final_lst.append(ts - lst_2_1[index])
+            final_lst_02.append(ts - lst_2_1[index])
         except IndexError as err:
             # print("Index Error at {0}".format(index))
             continue
 
    
-    print("01:0c:cd:01:00:02")
+    # print("01:0c:cd:01:00:02")
 
-    if final_lst :
-        print("FINAL len {0}".format(len(final_lst)))
-        print("Average (mean) E2E delay: {0}".format(statistics.mean(final_lst)))
-        print("Standard deviation: {0}".format(statistics.stdev(final_lst)))
-        print("Variance: {0}".format(statistics.variance(final_lst)))
-        print("Min: {0}".format(min(final_lst)))
-        print("Max: {0}".format(max(final_lst)))
-        # Is the below correct?
-        print("Standard error of the mean {0}".format(float(statistics.stdev(final_lst))/math.sqrt(len(final_lst))))
-        # print("=======================================")
-        # print(final_lst)
+    # if final_lst :
+    #     print("FINAL len {0}".format(len(final_lst)))
+    #     print("Average (mean) E2E delay: {0}".format(statistics.mean(final_lst)))
+    #     print("Standard deviation: {0}".format(statistics.stdev(final_lst)))
+    #     print("Variance: {0}".format(statistics.variance(final_lst)))
+    #     print("Min: {0}".format(min(final_lst)))
+    #     print("Max: {0}".format(max(final_lst)))
+    #     # Is the below correct?
+    #     print("Standard error of the mean {0}".format(float(statistics.stdev(final_lst))/math.sqrt(len(final_lst))))
+    #     # print("=======================================")
+    #     # print(final_lst)
     
     final_lst = []
 
     for index, ts in enumerate(lst_3_1):
         # print("Index {0}".format(index))
         try:
-            final_lst.append(ts - lst_3_2[index])
+            final_lst_03.append(ts - lst_3_2[index])
         except IndexError as err:
             # print("Index Error at {0}".format(index))
             continue
 
    
-    print("01:0c:cd:01:00:03")
+    # print("01:0c:cd:01:00:03")
 
-    if final_lst :
-        print("FINAL len {0}".format(len(final_lst)))
-        print("Average (mean) E2E delay: {0}".format(statistics.mean(final_lst)))
-        print("Standard deviation: {0}".format(statistics.stdev(final_lst)))
-        print("Variance: {0}".format(statistics.variance(final_lst)))
-        print("Min: {0}".format(min(final_lst)))
-        print("Max: {0}".format(max(final_lst)))
-        # Is the below correct?
-        print("Standard error of the mean {0}".format(float(statistics.stdev(final_lst))/math.sqrt(len(final_lst))))
+    # if final_lst :
+    #     print("FINAL len {0}".format(len(final_lst)))
+    #     print("Average (mean) E2E delay: {0}".format(statistics.mean(final_lst)))
+    #     print("Standard deviation: {0}".format(statistics.stdev(final_lst)))
+    #     print("Variance: {0}".format(statistics.variance(final_lst)))
+    #     print("Min: {0}".format(min(final_lst)))
+    #     print("Max: {0}".format(max(final_lst)))
+    #     # Is the below correct?
+    #     print("Standard error of the mean {0}".format(float(statistics.stdev(final_lst))/math.sqrt(len(final_lst))))
 
     final_lst = []
 
     for index, ts in enumerate(lst_4_1):
         # print("Index {0}".format(index))
         try:
-            final_lst.append(ts - lst_4_2[index])
+            final_lst_04.append(ts - lst_4_2[index])
         except IndexError as err:
             # print("Index Error at {0}".format(index))
             continue
 
    
-    print("01:0c:cd:01:00:04")
+    # print("01:0c:cd:01:00:04")
 
-    if final_lst :
-
-        print("Average (mean) E2E delay: {0}".format(statistics.mean(final_lst)))
-        print("Standard deviation: {0}".format(statistics.stdev(final_lst)))
-        print("Variance: {0}".format(statistics.variance(final_lst)))
-        print("Min: {0}".format(min(final_lst)))
-        print("Max: {0}".format(max(final_lst)))
-        # Is the below correct?
-        print("Standard error of the mean {0}".format(float(statistics.stdev(final_lst))/math.sqrt(len(final_lst))))
+    # if final_lst :
+    #     print("FINAL len {0}".format(len(final_lst)))
+    #     print("Average (mean) E2E delay: {0}".format(statistics.mean(final_lst)))
+    #     print("Standard deviation: {0}".format(statistics.stdev(final_lst)))
+    #     print("Variance: {0}".format(statistics.variance(final_lst)))
+    #     print("Min: {0}".format(min(final_lst)))
+    #     print("Max: {0}".format(max(final_lst)))
+    #     # Is the below correct?
+    #     print("Standard error of the mean {0}".format(float(statistics.stdev(final_lst))/math.sqrt(len(final_lst))))
 
     return
 
 def main(pcap_1="", pcap_2=""):
 
-    # for i in range(0, 10):
-    for i in range(0, 1):
+    for i in range(0, 10):
+    # for i in range(0, 1):
         directory  = "../scenario_1_exp_{0}".format(i)
         pcap_1 = None
         pcap_2 = None
@@ -376,7 +396,54 @@ def main(pcap_1="", pcap_2=""):
         pcap_2 = "{0}/exp_{1}_RTAC.pcap".format(directory, i)
         calculate(pcap_1=pcap_1, pcap_2=pcap_2)
         print("===============================")
-    
+
+    print("01:0c:cd:01:00:01")
+
+    if final_lst_01 :
+        print("FINAL len {0}".format(len(final_lst_01)))
+        print("Average (mean) E2E delay: {0}".format(statistics.mean(final_lst_01)))
+        print("Standard deviation: {0}".format(statistics.stdev(final_lst_01)))
+        print("Variance: {0}".format(statistics.variance(final_lst_01)))
+        print("Min: {0}".format(min(final_lst_01)))
+        print("Max: {0}".format(max(final_lst_01)))
+        # Is the below correct?
+        print("Standard error of the mean {0}".format(float(statistics.stdev(final_lst_01))/math.sqrt(len(final_lst_01))))
+
+    print("01:0c:cd:01:00:02")
+
+    if final_lst_02 :
+        print("FINAL len {0}".format(len(final_lst_02)))
+        print("Average (mean) E2E delay: {0}".format(statistics.mean(final_lst_02)))
+        print("Standard deviation: {0}".format(statistics.stdev(final_lst_02)))
+        print("Variance: {0}".format(statistics.variance(final_lst_02)))
+        print("Min: {0}".format(min(final_lst_02)))
+        print("Max: {0}".format(max(final_lst_02)))
+        # Is the below correct?
+        print("Standard error of the mean {0}".format(float(statistics.stdev(final_lst_02))/math.sqrt(len(final_lst_02))))
+
+    print("01:0c:cd:01:00:03")
+
+    if final_lst_03 :
+        print("FINAL len {0}".format(len(final_lst_03)))
+        print("Average (mean) E2E delay: {0}".format(statistics.mean(final_lst_03)))
+        print("Standard deviation: {0}".format(statistics.stdev(final_lst_03)))
+        print("Variance: {0}".format(statistics.variance(final_lst_03)))
+        print("Min: {0}".format(min(final_lst_03)))
+        print("Max: {0}".format(max(final_lst_03)))
+        # Is the below correct?
+        print("Standard error of the mean {0}".format(float(statistics.stdev(final_lst_03))/math.sqrt(len(final_lst_03))))
+
+    print("01:0c:cd:01:00:04")
+
+    if final_lst_04 :
+        print("FINAL len {0}".format(len(final_lst_04)))
+        print("Average (mean) E2E delay: {0}".format(statistics.mean(final_lst_04)))
+        print("Standard deviation: {0}".format(statistics.stdev(final_lst_04)))
+        print("Variance: {0}".format(statistics.variance(final_lst_04)))
+        print("Min: {0}".format(min(final_lst_04)))
+        print("Max: {0}".format(max(final_lst_04)))
+        # Is the below correct?
+        print("Standard error of the mean {0}".format(float(statistics.stdev(final_lst_04))/math.sqrt(len(final_lst_04))))
 
     return
 

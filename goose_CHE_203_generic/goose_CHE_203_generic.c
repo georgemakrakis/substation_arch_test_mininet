@@ -304,7 +304,7 @@ void *threadedPublisher(void *input)
     }
     // There is no example for RTAC, the values are arbitrary.
     else  if (strcmp(device_name, "RTAC") == 0) {
-        min_interval = 10;
+        min_interval = 30;
         max_interval = 100;
     }
 
@@ -873,7 +873,7 @@ main(int argc, char **argv)
 
     pthread_create(&tid_rec, NULL, threadedReceiver, (void *)rec_struct);
     
-    // if (strcmp(device_name, "651R_2")){
+    // if (strcmp(device_name, "651R_2") || strcmp(device_name, "787_2") || strcmp(device_name, "451_2")){
     //     sleep(2);
     // }
 
