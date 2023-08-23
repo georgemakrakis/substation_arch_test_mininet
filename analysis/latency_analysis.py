@@ -49,7 +49,6 @@ lst_3_2 = []
 lst_4_1 = []
 lst_4_2 = []
 
-final_lst = []
 
 multicast_addresses_scenario_1 = [
     "01:0c:cd:01:00:01",
@@ -95,11 +94,14 @@ def goose_pdu_decode(encoded_data):
 # Measure the E2E delay of packets      
 
 def calculate (pcap_1, pcap_2):
-    global total
-    global final_lst
+    # global total
+    # global final_lst
 
     next_sqNum = 0
     next_stNum = 1
+
+    total = 0
+    final_lst = []
 
     for index, packet in enumerate(PcapReader(pcap_1)):
 
@@ -127,6 +129,10 @@ def calculate (pcap_1, pcap_2):
                 lst_1_1.append(packet.time)
                 total += 1
             elif eth.dst == "01:0c:cd:01:00:02":
+                # if (gd[6] == 0):
+                if (index == 0):
+                    continue
+                 
                 lst_2_1.append(packet.time)
                 total += 1
             elif eth.dst == "01:0c:cd:01:00:03":
@@ -136,7 +142,7 @@ def calculate (pcap_1, pcap_2):
                 lst_4_1.append(packet.time)
                 total += 1
 
-    print("Total packets of {0}: {1}".format(sys.argv[1], total))
+    print("Total packets of {0}: {1}".format(pcap_1, total))
     
     total = 0
 
@@ -166,20 +172,28 @@ def calculate (pcap_1, pcap_2):
             
             eth = packet[Ether]
             if eth.dst == "01:0c:cd:01:00:01":
+                if (index == 0):
+                    continue
                 lst_1_2.append(packet.time)
                 total += 1
             elif eth.dst == "01:0c:cd:01:00:02":
                 
-                if(next_stNum != gd[5]):
-                    next_stNum = gd[5]
-                    next_sqNum = 0
-
-                if(next_sqNum == gd[6]):
-                    # print("HERE")
-                    next_sqNum += 1     
-                    print(gd[6])
-                    lst_2_2.append(packet.time)
+                # To remove the first packet that does not reach the destination
+                # if (gd[6] == 0):
+                #     continue
                 
+                # # To accomodate the changes in StNum
+                # if(next_stNum != gd[5]):
+                #     next_stNum = gd[5]
+                #     next_sqNum = 0
+
+                # if(next_sqNum == gd[6]):
+                #     # print("HERE")
+                #     next_sqNum += 1     
+                #     # print(gd[6])
+                #     lst_2_2.append(packet.time)
+                
+                lst_2_2.append(packet.time)
                 total += 1
             elif eth.dst == "01:0c:cd:01:00:03":
                 lst_3_2.append(packet.time)
@@ -188,7 +202,7 @@ def calculate (pcap_1, pcap_2):
                 lst_4_2.append(packet.time)
                 total += 1
 
-    print("Total packets of {0}: {1}".format(sys.argv[2], total))
+    print("Total packets of {0}: {1}".format(pcap_2, total))
 
     # if len(lst_1) == len(lst_2):
 
@@ -207,7 +221,7 @@ def calculate (pcap_1, pcap_2):
 
     if final_lst :
 
-        print("Average (mean) time between two packets: {0}".format(statistics.mean(final_lst)))
+        print("Average (mean) E2E delay: {0}".format(statistics.mean(final_lst)))
         print("Standard deviation: {0}".format(statistics.stdev(final_lst)))
         print("Variance: {0}".format(statistics.variance(final_lst)))
         print("Min: {0}".format(min(final_lst)))
@@ -224,7 +238,7 @@ def calculate (pcap_1, pcap_2):
             # final_lst.append(ts - lst_2_2[index])
             final_lst.append(ts - lst_2_1[index])
         except IndexError as err:
-            print("Index Error at {0}".format(index))
+            # print("Index Error at {0}".format(index))
             continue
 
    
@@ -232,7 +246,7 @@ def calculate (pcap_1, pcap_2):
 
     if final_lst :
         print("FINAL len {0}".format(len(final_lst)))
-        print("Average (mean) time between two packets: {0}".format(statistics.mean(final_lst)))
+        print("Average (mean) E2E delay: {0}".format(statistics.mean(final_lst)))
         print("Standard deviation: {0}".format(statistics.stdev(final_lst)))
         print("Variance: {0}".format(statistics.variance(final_lst)))
         print("Min: {0}".format(min(final_lst)))
@@ -257,7 +271,7 @@ def calculate (pcap_1, pcap_2):
 
     if final_lst :
 
-        print("Average (mean) time between two packets: {0}".format(statistics.mean(final_lst)))
+        print("Average (mean) E2E delay: {0}".format(statistics.mean(final_lst)))
         print("Standard deviation: {0}".format(statistics.stdev(final_lst)))
         print("Variance: {0}".format(statistics.variance(final_lst)))
         print("Min: {0}".format(min(final_lst)))
@@ -280,7 +294,7 @@ def calculate (pcap_1, pcap_2):
 
     if final_lst :
 
-        print("Average (mean) time between two packets: {0}".format(statistics.mean(final_lst)))
+        print("Average (mean) E2E delay: {0}".format(statistics.mean(final_lst)))
         print("Standard deviation: {0}".format(statistics.stdev(final_lst)))
         print("Variance: {0}".format(statistics.variance(final_lst)))
         print("Min: {0}".format(min(final_lst)))
@@ -290,9 +304,34 @@ def calculate (pcap_1, pcap_2):
 
     return
 
-def main(pcap_1, pcap_2):
+def main(pcap_1="", pcap_2=""):
 
-    calculate(pcap_1=pcap_1, pcap_2=pcap_2)
+    # for i in range(0, 10):
+    for i in range(0, 1):
+        directory  = "../scenario_1_exp_{0}".format(i)
+        pcap_1 = None
+        pcap_2 = None
+
+        for index, filename in enumerate(os.listdir(directory)):
+            f = os.path.join(directory, filename)
+            # checking if it is a file
+            if os.path.isfile(f):
+                print(f)
+                # if (index % 2) == 0:
+                #     pcap_1 = f
+                # elif (index % 2) != 0:
+                #     pcap_2 = f
+
+                #     calculate(pcap_1=pcap_1, pcap_2=pcap_2)
+
+                if (f == "../scenario_1_exp_{0}/exp_{0}_651R_2.pcap".format(i)):
+                    pcap_1 = f
+                elif (f == "../scenario_1_exp_{0}/exp_{0}_RTAC.pcap".format(i)):
+                    pcap_2 = f
+                
+                if (pcap_1 and pcap_2):
+                    calculate(pcap_1=pcap_1, pcap_2=pcap_2)
+                    print("===============================")
     
     
 
@@ -303,7 +342,9 @@ if __name__ == '__main__':
     # TODO: These can be taken directly when scanning the whole directory with the pcaps
     # to perform the analysis for all the communication paths.
      
-    pcap_1 = sys.argv[1]
-    pcap_2 = sys.argv[2]
+    # pcap_1 = sys.argv[1]
+    # pcap_2 = sys.argv[2]
 
-    main(pcap_1, pcap_2)
+    # main(pcap_1, pcap_2)
+    
+    main()

@@ -70,7 +70,7 @@ def main():
     
     # p2 = threading.Thread(target=run_process, args=(program_command, program_type, wait_time, ))
 
-    for i in range(0, 5):
+    for i in range(0, 10):
 
         program_command = ["sudo", "ryu", "run" ,"--verbose", "process_bus.py", "--config-file=params.conf"]
         program_type = "controller"
