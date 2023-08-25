@@ -87,7 +87,7 @@ def run_commands (host):
     time.sleep(0.1)
     host.cmd("bash -c '/home/mininet/substation_arch_test/goose_CHE_203_generic/goose_CHE_203_generic {0}-eth0 {0}' &".format(host.name))
 
-def main(scenario=0, run=1):
+def main(scenario=0, run=1, security=False):
     topo = process_bus()
     net = Mininet(topo, build=False, waitConnected=True )
     control = RemoteController('c0', ip='127.0.0.1', port=6633) 
@@ -99,12 +99,19 @@ def main(scenario=0, run=1):
         "RTAC" : "01:0c:cd:01:00:01"
     }
 
+    prefix = ""
+    if security == "True":
+        prefix="security_"
+    elif security == "False":
+        prefix="learning_"
+
+
     scenario_1_hosts = ["787_2", "451_2", "RTAC", "651R_2",]
     scenario_2_hosts = ["RTAC", "651R_2", "787_2", "451_2", "487B_2", "351_2"]
     
     hosts = net.hosts
     if scenario == 1:
-        new_dir = "./scenario_1_exp_{0}".format(run)
+        new_dir = "./{0}scenario_1_exp_{1}".format(prefix, run)
 
         if not os.path.exists(new_dir):
             os.mkdir(new_dir)
@@ -115,7 +122,7 @@ def main(scenario=0, run=1):
             # (threads) so we will not loose packet on either sides.
             if host.name in scenario_1_hosts:
                 host.cmd("tcpdump -i {0}-eth0 -w {1}/exp_{2}_{0}.pcap &".format(host.name, new_dir, run))
-                time.sleep(0.1)
+                time.sleep(0.2)
                 # host.cmd("bash -c '/home/mininet/substation_arch_test/goose_CHE_203_generic/goose_CHE_203_generic {0}-eth0 {0}' &".format(host.name))
 
                 # p1 = threading.Thread(target=run_commands, args=(host, ))
@@ -130,14 +137,14 @@ def main(scenario=0, run=1):
         # dev_651R = hosts[7]
         # dev_651R.cmd("bash -c '/home/mininet/substation_arch_test/goose_CHE_203_generic/goose_CHE_203_generic 651R_2-eth0 651R_2' &")
 
-        # time.sleep(0.1)
-        for host in hosts:
-            # print(host.cmd("ip a"))
-            # TODO: These are executed serially, need to be executed in parallel
-            # (threads) so we will not loose packet on either sides.
-            if host.name in scenario_1_hosts:
-                host.cmd("bash -c '/home/mininet/substation_arch_test/goose_CHE_203_generic/goose_CHE_203_generic {0}-eth0 {0}' &".format(host.name))
-                
+        # for host in hosts:
+        #     if host.name in scenario_1_hosts:
+        #         host.cmd("bash -c '/home/mininet/substation_arch_test/goose_CHE_203_generic/goose_CHE_203_generic {0}-eth0 {0}' &".format(host.name))
+
+        hosts[8].cmd("bash -c '/home/mininet/substation_arch_test/goose_CHE_203_generic/goose_CHE_203_generic 787_2-eth0 787_2' &")
+        hosts[3].cmd("bash -c '/home/mininet/substation_arch_test/goose_CHE_203_generic/goose_CHE_203_generic 451_2-eth0 451_2' &")
+        hosts[10].cmd("bash -c '/home/mininet/substation_arch_test/goose_CHE_203_generic/goose_CHE_203_generic RTAC-eth0 RTAC' &")
+        hosts[7].cmd("bash -c '/home/mininet/substation_arch_test/goose_CHE_203_generic/goose_CHE_203_generic 651R_2-eth0 651R_2' &")
     
     elif scenario == 2:
 
@@ -186,8 +193,9 @@ if __name__ == '__main__':
     try:
         scenario = int(sys.argv[1])
         run = int(sys.argv[2])
+        security = sys.argv[3]
     except ValueError as er:
         print("Provided arg is not a number.")
         exit(1)
     
-    main(scenario=scenario, run=run)
+    main(scenario=scenario, run=run, security=security)

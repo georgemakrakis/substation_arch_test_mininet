@@ -98,7 +98,10 @@ def goose_pdu_decode(encoded_data):
 
 # Measure the E2E delay of packets      
 
-def calculate (pcap_1, pcap_2):
+total_arr_1 = []
+total_arr_2 = []
+
+def calculate (pcap_1, pcap_2, security=False):
     global final_lst_01 
     global final_lst_02 
     global final_lst_03 
@@ -123,6 +126,9 @@ def calculate (pcap_1, pcap_2):
     total = 0
     final_lst = []
 
+    global total_arr_1
+    global total_arr_2
+
     for index, packet in enumerate(PcapReader(pcap_1)):
 
         if gooseTest(packet):
@@ -134,12 +140,6 @@ def calculate (pcap_1, pcap_2):
 
             # Use PYASN1 to parse the Goose PDU
             gd = goose_pdu_decode(gpdu)
-            
-        
-            # NOTE: Had one more packet in the first pcap so we remove the seond one here.    
-            # if (index == 0 or index == 1):
-            # if (index == 1):
-            #     continue
 
             eth = packet[Ether]
             # TODO: Here we should also record the stNum and sqNum to correlate them later
@@ -148,15 +148,15 @@ def calculate (pcap_1, pcap_2):
                 # if (gd[5] == 1 and (gd[6] == 0)):
                 #     continue
 
-                if (gd[5] == 4 and gd[6] > 14):
-                    break
+                # if (gd[5] == 4 and gd[6] > 14 and security):
+                #     break
 
                 # print(gd[6])
                 lst_1_1.append(packet.time)
                 total += 1
             elif eth.dst == "01:0c:cd:01:00:02":
                 # if (gd[6] == 0):
-                if (gd[5] == 1 and (gd[6] == 0)):
+                if (gd[5] == 1 and (gd[6] == 0) and security):
                     continue
                  
                 lst_2_1.append(packet.time)
@@ -177,7 +177,9 @@ def calculate (pcap_1, pcap_2):
                 lst_4_1.append(packet.time)
                 total += 1
 
-    print("Total packets of {0}: {1}".format(pcap_1, total))
+    if "651R" in pcap_1:
+        print("Total packets of {0}: {1}".format(pcap_1, total))
+        total_arr_1.append(total)
     
     total = 0
 
@@ -207,7 +209,7 @@ def calculate (pcap_1, pcap_2):
             
             eth = packet[Ether]
             if eth.dst == "01:0c:cd:01:00:01":
-                if (gd[5] == 1 and (gd[6] == 0)):
+                if (gd[5] == 1 and (gd[6] == 0) and security):
                     continue
                
                 lst_1_2.append(packet.time)
@@ -235,7 +237,7 @@ def calculate (pcap_1, pcap_2):
                 
                 # TODO: Needs to be fixed.
                 # if (gd[5] == 1 and (gd[6] == 0 or gd[6] == 1)):
-                if (gd[5] == 1 and (gd[6] == 0)):
+                if (gd[5] == 1 and (gd[6] == 0) and security):
                     continue
 
                 lst_3_2.append(packet.time)
@@ -243,39 +245,34 @@ def calculate (pcap_1, pcap_2):
             elif eth.dst == "01:0c:cd:01:00:04":
                 # TODO: Needs to be fixed.
                 # if (gd[5] == 1 and (gd[6] == 0 or gd[6] == 1)):
-                if (gd[5] == 1 and (gd[6] == 0)):
+                if (gd[5] == 1 and (gd[6] == 0) and security):
                     continue
                 lst_4_2.append(packet.time)
                 total += 1
 
-    print("Total packets of {0}: {1}".format(pcap_2, total))
+    if "651R" in pcap_1:
+        print("Total packets of {0}: {1}".format(pcap_2, total))
+        total_arr_2.append(total)
+
+        # print("total_arr_1 {0}".format(total_arr_1))
+        # print("total_arr_1 MIN: {0}".format( min(total_arr_1)))
+
+        # print("total_arr_2 {0}".format(total_arr_2))
+        # print("total_arr_2 MIN: {0}".format(min(total_arr_2)))
 
     # if len(lst_1) == len(lst_2):
 
     # print("For {0} and {1} we have the following:".format(pcap_1, pcap_2))
+   
 
     for index, ts in enumerate(lst_1_1):
         # print("Index {0}".format(index))
         try:
             final_lst_01.append(ts - lst_1_2[index])
         except IndexError as err:
-            # print("Index Error at {0}".format(index))
+            # print("01:0c:cd:01:00:01 Index Error at {0}".format(index))
+            # print("01:0c:cd:01:00:01 lst_1_1 vs lst_1_2 :{0}, {1}".format(len(lst_1_1), len(lst_1_2)))
             continue
-
-   
-    # print("01:0c:cd:01:00:01")
-
-    # if final_lst :
-    #     print("FINAL len {0}".format(len(final_lst)))
-    #     print("Average (mean) E2E delay: {0}".format(statistics.mean(final_lst)))
-    #     print("Standard deviation: {0}".format(statistics.stdev(final_lst)))
-    #     print("Variance: {0}".format(statistics.variance(final_lst)))
-    #     print("Min: {0}".format(min(final_lst)))
-    #     print("Max: {0}".format(max(final_lst)))
-    #     # Is the below correct?
-    #     print("Standard error of the mean {0}".format(float(statistics.stdev(final_lst))/math.sqrt(len(final_lst))))
-    
-    final_lst = []
 
     # for index, ts in enumerate(lst_2_1):
     for index, ts in enumerate(lst_2_2):
@@ -284,25 +281,9 @@ def calculate (pcap_1, pcap_2):
             # final_lst.append(ts - lst_2_2[index])
             final_lst_02.append(ts - lst_2_1[index])
         except IndexError as err:
-            # print("Index Error at {0}".format(index))
+            # print("01:0c:cd:01:00:02 Index Error at {0}".format(index))
             continue
 
-   
-    # print("01:0c:cd:01:00:02")
-
-    # if final_lst :
-    #     print("FINAL len {0}".format(len(final_lst)))
-    #     print("Average (mean) E2E delay: {0}".format(statistics.mean(final_lst)))
-    #     print("Standard deviation: {0}".format(statistics.stdev(final_lst)))
-    #     print("Variance: {0}".format(statistics.variance(final_lst)))
-    #     print("Min: {0}".format(min(final_lst)))
-    #     print("Max: {0}".format(max(final_lst)))
-    #     # Is the below correct?
-    #     print("Standard error of the mean {0}".format(float(statistics.stdev(final_lst))/math.sqrt(len(final_lst))))
-    #     # print("=======================================")
-    #     # print(final_lst)
-    
-    final_lst = []
 
     for index, ts in enumerate(lst_3_1):
         # print("Index {0}".format(index))
@@ -312,20 +293,7 @@ def calculate (pcap_1, pcap_2):
             # print("Index Error at {0}".format(index))
             continue
 
-   
-    # print("01:0c:cd:01:00:03")
 
-    # if final_lst :
-    #     print("FINAL len {0}".format(len(final_lst)))
-    #     print("Average (mean) E2E delay: {0}".format(statistics.mean(final_lst)))
-    #     print("Standard deviation: {0}".format(statistics.stdev(final_lst)))
-    #     print("Variance: {0}".format(statistics.variance(final_lst)))
-    #     print("Min: {0}".format(min(final_lst)))
-    #     print("Max: {0}".format(max(final_lst)))
-    #     # Is the below correct?
-    #     print("Standard error of the mean {0}".format(float(statistics.stdev(final_lst))/math.sqrt(len(final_lst))))
-
-    final_lst = []
 
     for index, ts in enumerate(lst_4_1):
         # print("Index {0}".format(index))
@@ -335,66 +303,38 @@ def calculate (pcap_1, pcap_2):
             # print("Index Error at {0}".format(index))
             continue
 
-   
-    # print("01:0c:cd:01:00:04")
-
-    # if final_lst :
-    #     print("FINAL len {0}".format(len(final_lst)))
-    #     print("Average (mean) E2E delay: {0}".format(statistics.mean(final_lst)))
-    #     print("Standard deviation: {0}".format(statistics.stdev(final_lst)))
-    #     print("Variance: {0}".format(statistics.variance(final_lst)))
-    #     print("Min: {0}".format(min(final_lst)))
-    #     print("Max: {0}".format(max(final_lst)))
-    #     # Is the below correct?
-    #     print("Standard error of the mean {0}".format(float(statistics.stdev(final_lst))/math.sqrt(len(final_lst))))
-
     return
 
 def main(pcap_1="", pcap_2=""):
 
     for i in range(0, 10):
     # for i in range(0, 1):
-        directory  = "../scenario_1_exp_{0}".format(i)
+        # directory  = "../security_scenario_1_exp_{0}".format(i)
+        # security = True
+        
+        directory  = "../learning_scenario_1_exp_{0}".format(i)
+        security = False
+        
         pcap_1 = None
         pcap_2 = None
-
-        # for index, filename in enumerate(os.listdir(directory)):
-        #     f = os.path.join(directory, filename)
-        #     # checking if it is a file
-        #     if os.path.isfile(f):
-        #         print(f)
-        #         # if (index % 2) == 0:
-        #         #     pcap_1 = f
-        #         # elif (index % 2) != 0:
-        #         #     pcap_2 = f
-
-        #         #     calculate(pcap_1=pcap_1, pcap_2=pcap_2)
-
-        #         if (f == "../scenario_1_exp_{0}/exp_{0}_651R_2.pcap".format(i)):
-        #             pcap_1 = f
-        #         elif (f == "../scenario_1_exp_{0}/exp_{0}_RTAC.pcap".format(i)):
-        #             pcap_2 = f
-                
-        #         if (pcap_1 and pcap_2):
-        #             calculate(pcap_1=pcap_1, pcap_2=pcap_2)
-        #             print("===============================")
 
         # :01 and :02
         pcap_1 = "{0}/exp_{1}_651R_2.pcap".format(directory, i)
         pcap_2 = "{0}/exp_{1}_RTAC.pcap".format(directory, i)
-        calculate(pcap_1=pcap_1, pcap_2=pcap_2)
+        calculate(pcap_1=pcap_1, pcap_2=pcap_2, security=security)
         print("===============================")
 
         # :03
         pcap_1 = "{0}/exp_{1}_787_2.pcap".format(directory, i)
         pcap_2 = "{0}/exp_{1}_RTAC.pcap".format(directory, i)
-        calculate(pcap_1=pcap_1, pcap_2=pcap_2)
+        calculate(pcap_1=pcap_1, pcap_2=pcap_2, security=security)
         print("===============================")
 
         # :04
         pcap_1 = "{0}/exp_{1}_451_2.pcap".format(directory, i)
         pcap_2 = "{0}/exp_{1}_RTAC.pcap".format(directory, i)
-        calculate(pcap_1=pcap_1, pcap_2=pcap_2)
+        calculate(pcap_1=pcap_1, pcap_2=pcap_2, security=security)
+
         print("===============================")
 
     print("01:0c:cd:01:00:01")

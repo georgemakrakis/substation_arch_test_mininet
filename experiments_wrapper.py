@@ -51,10 +51,10 @@ def run_process(program_command, program_type, wait_time):
     
     return
 
-def main():
+def main(security=False):
 
     # wait_time = 60
-    wait_time = 10
+    wait_time = 15
 
     # program_command = ["python", "timer.py", "10"]
     # NOTE: Below is an example of how each individual device should be run inside the simulation
@@ -70,20 +70,32 @@ def main():
     
     # p2 = threading.Thread(target=run_process, args=(program_command, program_type, wait_time, ))
 
+   
     # for i in range(0, 1):
     for i in range(0, 10):
 
-        program_command = ["sudo", "ryu", "run" ,"--verbose", "process_bus.py", "--config-file=params.conf"]
+        if security:
+
+            program_command = ["sudo", "ryu", "run" ,"--verbose", "process_bus.py", "--config-file=params.conf"]
+        else:
+            program_command = ["sudo", "ryu", "run" ,"--verbose", "learning_controller.py", "--config-file=params.conf"]
+        
         program_type = "controller"
         p1 = threading.Thread(target=run_process, args=(program_command, program_type, wait_time,))
 
+        
         # TODO: We need to have a variable for the scenario as well.
         # program_command = ["sudo", "mn", "-c", "&&", "sudo", "python", "process_bus_mininet.py", "1", str(2)]
-        program_command = ["sudo", "python", "process_bus_mininet.py", "1", str(i)]
+        if security:
+            program_command = ["sudo", "python", "process_bus_mininet.py", "1", str(i), "True"]
+        else:
+            program_command = ["sudo", "python", "process_bus_mininet.py", "1", str(i), "False"]
+
         program_type = "mininet"
         
         p2 = threading.Thread(target=run_process, args=(program_command, program_type, wait_time, ))
         p1.start()
+        time.sleep(1)
         p2.start()
         p1.join(wait_time)
         p2.join(wait_time)
@@ -107,9 +119,16 @@ def main():
 
         print(clear_mn.stdout)
 
+        # kill_tcpdump = subprocess.run(["sudo", "pkill", "-9", "f", "tcpdump"])
+
+        # print(kill_tcpdump.stdout)
+
     return
 
 
 if __name__ == '__main__':
+    
+    security=False
+    # security=True
 
-    main()
+    main(security=security)

@@ -463,9 +463,11 @@ class process_bus(app_manager.RyuApp):
         dpid = datapath.id
         self.mac_to_port.setdefault(dpid, {})
 
-        self.logger.info("packet in switch %s SRC: %s DST: %s IN_PORT: %s", dpid, src, dst, in_port)
-        if eth.ethertype == ether_types.ETH_TYPE_ARP:
-            self.logger.info("with protocol ARP")
+        # self.logger.info("packet in switch %s SRC: %s DST: %s IN_PORT: %s", dpid, src, dst, in_port)
+        
+        # if eth.ethertype == ether_types.ETH_TYPE_ARP:
+        #     self.logger.info("with protocol ARP")
+        
         # if eth.ethertype == ether_types.:
         #     self.logger.info("with protocol ARP")
 
@@ -489,13 +491,13 @@ class process_bus(app_manager.RyuApp):
         block_exists = [tuple for tuple in self.block_comms if any(dst == i for i in tuple) 
                                                             and any(src == i for i in tuple)]
 
-        if eth.ethertype == ether_types.ETH_TYPE_8021Q:
-            self.logger.info("Possibly with protocol GOOSE")
-            self.logger.info(eth.ethertype)
+        # if eth.ethertype == ether_types.ETH_TYPE_8021Q:
+        #     self.logger.info("Possibly with protocol GOOSE")
+        #     self.logger.info(eth.ethertype)
 
-        # That is GOOSE (0x88B8) in decimal
-        if eth.ethertype == 35000:
-            self.logger.info("with protocol GOOSE")
+        # # That is GOOSE (0x88B8) in decimal
+        # if eth.ethertype == 35000:
+        #     self.logger.info("with protocol GOOSE")
 
         # GOOSE Multicast list allowed comms based on multicast address and switch port that can reach
         # TODO: Maybe need to make this more granular to include also src MAC address?
@@ -510,10 +512,10 @@ class process_bus(app_manager.RyuApp):
             "01:0c:cd:01:00:04" : [2],
             
             # Allow also these two even if they do not play any role
-            # # 451
-            # "01:0c:cd:01:00:07" : [10],
-            # # 787
-            # "01:0c:cd:01:00:08" : [10]
+            # 451
+            "01:0c:cd:01:00:07" : [10],
+            # 787
+            "01:0c:cd:01:00:08" : [10]
             
             #("01:0c:cd:01:00:01", [10, 5])
             #("01:0c:cd:01:00:01", 16)
@@ -577,19 +579,19 @@ class process_bus(app_manager.RyuApp):
 
             
 
-             # Table miss flow entry for GOOSE (with VLAN) with lowest priority than the above
-            match = parser.OFPMatch(eth_type=ether_types.ETH_TYPE_8021Q)
-            actions = [parser.OFPActionGroup(group_id=50)]
-            inst = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS,
-                                             actions)]
-            self.add_flow(datapath=datapath, priority=3, command=command, match=match, inst=inst, waiters=waiters, log_action="packet_in", table_id=1, timeout=0)
+            # # Table miss flow entry for GOOSE (with VLAN) with lowest priority than the above
+            # match = parser.OFPMatch(eth_type=ether_types.ETH_TYPE_8021Q)
+            # actions = [parser.OFPActionGroup(group_id=50)]
+            # inst = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS,
+            #                                  actions)]
+            # self.add_flow(datapath=datapath, priority=3, command=command, match=match, inst=inst, waiters=waiters, log_action="packet_in", table_id=1, timeout=0)
             
-            # Table miss flow entry for GOOSE with lowest priority than the above
-            match = parser.OFPMatch(eth_type=0x88B8)
-            actions = [parser.OFPActionGroup(group_id=50)]
-            inst = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS,
-                                             actions)]
-            self.add_flow(datapath=datapath, priority=2, command=command, match=match, inst=inst, waiters=waiters, log_action="packet_in", table_id=1, timeout=0)
+            # # Table miss flow entry for GOOSE with lowest priority than the above
+            # match = parser.OFPMatch(eth_type=0x88B8)
+            # # actions = [parser.OFPActionGroup(group_id=50)]
+            # # inst = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS,
+            # #                                  actions)]
+            # self.add_flow(datapath=datapath, priority=2, command=command, match=match, inst=inst, waiters=waiters, log_action="packet_in", table_id=1, timeout=0)
 
             data = None
             if msg.buffer_id == ofproto.OFP_NO_BUFFER:

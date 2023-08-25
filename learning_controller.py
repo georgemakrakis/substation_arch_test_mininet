@@ -115,19 +115,32 @@ class learning_controller(app_manager.RyuApp):
 
         in_port = msg.match['in_port']
 
-        self.logger.info("packet in switch %s SRC: %s DST: %s IN_PORT: %s", dpid, src, dst, in_port)
+        # self.logger.info("packet in switch %s SRC: %s DST: %s IN_PORT: %s", dpid, src, dst, in_port)
         
         eth = pkt.get_protocols(ethernet.ethernet)[0]
 
         self.mac_to_port[dpid][src] = in_port
 
-        if eth.ethertype == ether_types.ETH_TYPE_8021Q:
-            self.logger.info("Possibly with protocol GOOSE")
-            self.logger.info(eth.ethertype)
+        if dst in self.mac_to_port[dpid]:
+            out_port = self.mac_to_port[dpid][dst]
+        else:
+            out_port = ofproto.OFPP_FLOOD
 
-        # That is GOOSE (0x88B8) in decimal
-        if eth.ethertype == 35000:
-            self.logger.info("with protocol GOOSE")
+        # NOTE: Port 20 is the IDS
+        # actions = [parser.OFPActionOutput(out_port), parser.OFPActionOutput(20)]
+        actions = [parser.OFPActionOutput(out_port)]
+        inst = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS,
+                                             actions)]
+        command=ofproto.OFPFC_ADD
+        waiters = {}
+
+        # if eth.ethertype == ether_types.ETH_TYPE_8021Q:
+        #     self.logger.info("Possibly with protocol GOOSE")
+        #     self.logger.info(eth.ethertype)
+
+        # # That is GOOSE (0x88B8) in decimal
+        # if eth.ethertype == 35000:
+        #     self.logger.info("with protocol GOOSE")
 
         # GOOSE Multicast list allowed comms based on multicast address and switch port that can reach
         # TODO: Maybe need to make this more granular to include also src MAC address?
@@ -195,8 +208,6 @@ class learning_controller(app_manager.RyuApp):
         if in_goose_list:
             match = parser.OFPMatch(eth_src=src, eth_dst=dst)
             actions = []
-            command = ofproto.OFPFC_ADD
-            waiters = {}
 
             for port in in_goose_list:
                 actions.append(parser.OFPActionOutput(port))
@@ -205,14 +216,17 @@ class learning_controller(app_manager.RyuApp):
                                              actions)]
             
             self.add_flow(datapath=datapath, priority=100, command=command, match=match, inst=inst, waiters=waiters, log_action="packet_in", table_id=0, timeout=0)
-            
-            
+        
+
             data = None
             if msg.buffer_id == ofproto.OFP_NO_BUFFER:
+                # print("Setting DATA!!!!")
                 data = msg.data
+                # print(data)
 
             out = parser.OFPPacketOut(datapath=datapath, buffer_id=msg.buffer_id,
                                   in_port=in_port, actions=actions, data=data)
+            
             datapath.send_msg(out)
 
             return
@@ -220,16 +234,6 @@ class learning_controller(app_manager.RyuApp):
         # Regular packets learning
         else:
             print("Regular packets...")
-            if dst in self.mac_to_port[dpid]:
-                out_port = self.mac_to_port[dpid][dst]
-            else:
-                out_port = ofproto.OFPP_FLOOD
-
-            actions = [parser.OFPActionOutput(out_port)]
-            inst = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS,
-                                             actions)]
-            command = ofproto.OFPFC_ADD
-            waiters = {}
 
             # install a flow to avoid packet_in next time
             if out_port != ofproto.OFPP_FLOOD:

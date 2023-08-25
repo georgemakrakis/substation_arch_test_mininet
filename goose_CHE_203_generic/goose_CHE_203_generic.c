@@ -57,6 +57,7 @@ LinkedList dataSetValuesTo451_2;
 
 char buffer_time[26];
 
+int updated = 0;
 
 void printLinkedList(LinkedList list){
 
@@ -160,7 +161,7 @@ gooseListener(GooseSubscriber subscriber, void* parameter)
 
     printf("  allData: %s\n", buffer);
 
-    int updated = 0;
+    updated = 0;
 
     if (MmsValue_getType(values) == MMS_ARRAY) {
         // printf("received binary control command: ");
@@ -296,11 +297,14 @@ void *threadedPublisher(void *input)
         max_interval = 100;
     }
     else  if (strcmp(device_name, "787_2") == 0) {
-        min_interval = 10;
+        // min_interval = 10;
+        min_interval = 30;
         max_interval = 100;
     }
     else  if (strcmp(device_name, "451_1") == 0) {
-        max_interval = 1000;
+        min_interval = 30;
+        // max_interval = 1000;
+        max_interval = 100;
     }
     // There is no example for RTAC, the values are arbitrary.
     else  if (strcmp(device_name, "RTAC") == 0) {
@@ -499,6 +503,12 @@ void *threadedPublisher(void *input)
                 step_e_done = 1;
                 // i = 0;
                 // return 0;
+            }
+
+            if(updated == 1){
+                GoosePublisher_increaseStNum(publisher_2);
+                GoosePublisher_increaseStNum(publisher_3);
+                updated = 0;
             }
 
             i++;
@@ -874,7 +884,24 @@ main(int argc, char **argv)
     pthread_create(&tid_rec, NULL, threadedReceiver, (void *)rec_struct);
     
     // if (strcmp(device_name, "651R_2") || strcmp(device_name, "787_2") || strcmp(device_name, "451_2")){
+    //     // sleep(1);
     //     sleep(2);
+    // }
+
+    if (strcmp(device_name, "651R_2")){
+        sleep(1);
+    }
+
+    if (strcmp(device_name, "RTAC")){
+        sleep(1);
+    }
+
+    // if (strcmp(device_name, "787_2")){
+    //     sleep(2);
+    // }
+
+    //  if (strcmp(device_name, "451_2")){
+    //     sleep(1);
     // }
 
     pthread_create(&tid_pub, NULL, threadedPublisher, (void *)pub_struct);
