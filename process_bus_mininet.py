@@ -111,7 +111,7 @@ def main(scenario=0, run=1, security=False):
     
     hosts = net.hosts
     if scenario == 1:
-        new_dir = "./{0}scenario_1_exp_{1}".format(prefix, run)
+        new_dir = "./scenario_1_exp/{0}scenario_1_exp_{1}".format(prefix, run)
 
         if not os.path.exists(new_dir):
             os.mkdir(new_dir)

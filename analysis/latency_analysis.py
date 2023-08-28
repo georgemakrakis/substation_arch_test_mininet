@@ -2,6 +2,10 @@ from scapy.all import *
 import datetime
 import statistics
 
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pds
+
 ###############################
 # Import SCAPY and ASN1 modules
 ###############################
@@ -313,12 +317,12 @@ def calculate (pcap_1, pcap_2, security=False):
 
 def main(pcap_1="", pcap_2=""):
 
-    for i in range(0, 10):
+    for i in range(0, 100):
     # for i in range(0, 1):
-        directory  = "../security_scenario_1_exp_{0}".format(i)
+        directory  = "../scenario_1_exp/security_scenario_1_exp_{0}".format(i)
         security = True
         
-        # directory  = "../learning_scenario_1_exp_{0}".format(i)
+        # directory  = "../scenario_1_exp/learning_scenario_1_exp_{0}".format(i)
         # security = False
         
         pcap_1 = None
@@ -346,6 +350,26 @@ def main(pcap_1="", pcap_2=""):
     print("01:0c:cd:01:00:01")
 
     if final_lst_01 :
+
+        x = np.arange(start=0, stop=len(final_lst_01), step=1)
+        y = final_lst_01
+        
+        # plt.plot(x, y)
+        # plt.xlabel("Time (sec)") 
+        # plt.ylabel("Latency (sec)")
+        # plt.title("Any suitable title")
+        # # plt.show()
+        # plt.savefig("test.png")
+
+        a = [1, 2, 2.5, 3, 3.5, 4, 5]
+        series = pds.Series(final_lst_01)
+        series = series.astype('float')
+        # Draw a KDE plot
+
+        series.plot.kde()
+
+        plt.savefig("test-density.png")
+    
         print("FINAL len {0}".format(len(final_lst_01)))
         print("Average (mean) E2E delay: {0}".format(statistics.mean(final_lst_01)))
         print("Standard deviation: {0}".format(statistics.stdev(final_lst_01)))

@@ -72,7 +72,8 @@ def main(security=False):
 
    
     # for i in range(0, 1):
-    for i in range(0, 10):
+    # for i in range(0, 10):
+    for i in range(0, 100):
 
         if security:
 
@@ -128,7 +129,7 @@ def main(security=False):
 
 if __name__ == '__main__':
     
-    # security=False
-    security=True
+    security=False
+    # security=True
 
     main(security=security)
