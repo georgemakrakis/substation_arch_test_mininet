@@ -277,6 +277,19 @@ void *threadedReceiver(void *input)
     }
 }
 
+void get_timestamp(time_t *s, long *ms){
+
+    struct timespec spec;
+    clock_gettime(CLOCK_REALTIME, &spec);
+    *s  = spec.tv_sec;
+    *ms = round(spec.tv_nsec / 1.0e6); // Convert nanoseconds to milliseconds
+    // if (ms > 999) {
+    if (*ms > 999999) {
+        *s++;
+        *ms = 0;
+    }
+}
+
 void *threadedPublisher(void *input)
 {
     // Store the value argument passed to this thread
@@ -340,32 +353,78 @@ void *threadedPublisher(void *input)
             printf("Publishing...\n");
 
             // TODO: Need to check for device name as well.
-            if(publisher != NULL){
+            if(publisher != NULL && strcmp(device_name, "RTAC") == 0){
                 char *goID = "SEL_RTAC/LLN0$GO$GooseDSet1";
+
+                char *timestamp_msg = (char*)malloc(70 * sizeof(char));
+                time_t s;
+                long ms;
+                get_timestamp(&s, &ms);
+                
+                sprintf(timestamp_msg, "%"PRIdMAX".%06ld, %s\n", (intmax_t)s, ms, goID);
+                fileLog(timestamp_msg, "send");
+            }
+            else if (publisher != NULL && strcmp(device_name, "651R_2") == 0){
+                char *goID = "SEL_651R_2/LLN0$GO$GooseDSet1";
+
+                char *timestamp_msg = (char*)malloc(70 * sizeof(char));
+                time_t s;
+                long ms;
+                get_timestamp(&s, &ms);
+                
+                sprintf(timestamp_msg, "%"PRIdMAX".%06ld, %s\n", (intmax_t)s, ms, goID);
+                fileLog(timestamp_msg, "send");
+            }
+            else if (publisher != NULL && strcmp(device_name, "451_2") == 0){
+                char *goID = "SEL_451_2/LLN0$GO$GooseDSet1";
+
+                char *timestamp_msg = (char*)malloc(70 * sizeof(char));
+                time_t s;
+                long ms;
+                get_timestamp(&s, &ms);
+                
+                sprintf(timestamp_msg, "%"PRIdMAX".%06ld, %s\n", (intmax_t)s, ms, goID);
+                fileLog(timestamp_msg, "send");
+            }
+            else if (publisher != NULL && strcmp(device_name, "787_2") == 0){
+                char *goID = "SEL_787_2/LLN0$GO$GooseDSet1";
+
+                char *timestamp_msg = (char*)malloc(70 * sizeof(char));
+                time_t s;
+                long ms;
+                get_timestamp(&s, &ms);
+                
+                sprintf(timestamp_msg, "%"PRIdMAX".%06ld, %s\n", (intmax_t)s, ms, goID);
+                fileLog(timestamp_msg, "send");
             }
 
-            if(publisher_2 != NULL){
+            if(publisher_2 != NULL && strcmp(device_name, "RTAC") == 0){
                 char *goID = "SEL_RTAC/LLN0$GO$GooseDSet2";
+
+                char *timestamp_msg = (char*)malloc(70 * sizeof(char));
+                time_t s;
+                long ms;
+                get_timestamp(&s, &ms);
+                
+                sprintf(timestamp_msg, "%"PRIdMAX".%06ld, %s\n", (intmax_t)s, ms, goID);
+                fileLog(timestamp_msg, "send");
+            }
+
+            if(publisher_3 != NULL && strcmp(device_name, "RTAC") == 0){
+                char *goID = "SEL_RTAC/LLN0$GO$GooseDSet3";
+
+                char *timestamp_msg = (char*)malloc(70 * sizeof(char));
+                time_t s;
+                long ms;
+                get_timestamp(&s, &ms);
+                
+                sprintf(timestamp_msg, "%"PRIdMAX".%06ld, %s\n", (intmax_t)s, ms, goID);
+                fileLog(timestamp_msg, "send");
             }
             
         
 
-            // char *timestamp_msg = (char*)malloc(70 * sizeof(char));
-
-            // // Creating loggging for the device
-            // long            ms; // Milliseconds
-            // time_t          s;  // Seconds
-            // struct timespec spec;
-            // clock_gettime(CLOCK_REALTIME, &spec);
-            // s  = spec.tv_sec;
-            // ms = round(spec.tv_nsec / 1.0e6); // Convert nanoseconds to milliseconds
-            // // if (ms > 999) {
-            // if (ms > 999999) {
-            //     s++;
-            //     ms = 0;
-            // }
-            // sprintf(timestamp_msg, "%"PRIdMAX".%06ld, %s\n", (intmax_t)s, ms, goID);
-            // fileLog(timestamp_msg, "rec");
+            
 
             // Thread_sleep(publish_interval);
 
