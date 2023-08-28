@@ -78,11 +78,11 @@ void printLinkedList(LinkedList list){
     }
 }
 
-int fileLog(char *message){
+int fileLog(char *message, char *suffix){
 
-    char *dir_path = (char*)malloc(100 * sizeof(char));
-    sprintf(dir_path, "%s-%s", 
-        "/home/mininet/substation_arch_test/goose_CHE_203_generic/logs_dir", device_name);
+    char *dir_path = (char*)malloc(110 * sizeof(char));
+    sprintf(dir_path, "%s-%s_%s", 
+        "/home/mininet/substation_arch_test/goose_CHE_203_generic/logs_dir", device_name, suffix);
 
     FILE *log_file;
     DIR* dir = opendir(dir_path);
@@ -102,7 +102,7 @@ int fileLog(char *message){
         return 1;
     }
 
-    char *log_path = (char*)malloc(100 * sizeof(char));
+    char *log_path = (char*)malloc(110 * sizeof(char));
     sprintf(log_path, "%s/%s", dir_path, log_name);
 
     log_file = fopen(log_path, "a+"); // a+ (create + append) option will allow appending which is useful in a log file
@@ -131,24 +131,28 @@ gooseListener(GooseSubscriber subscriber, void* parameter)
             GooseSubscriber_getSqNum(subscriber));
     printf("  timeToLive: %u\n", GooseSubscriber_getTimeAllowedToLive(subscriber));
 
-    uint64_t timestamp = GooseSubscriber_getTimestamp(subscriber);
+    char *goID = GooseSubscriber_getGoId(subscriber);
 
     char *timestamp_msg = (char*)malloc(70 * sizeof(char));
-    sprintf(timestamp_msg, "packet timestamp: %u.%u\n", (uint32_t) (timestamp / 1000), (uint32_t) (timestamp % 1000));
-    // fileLog(timestamp_msg);
 
     // Creating loggging for the device
-    // long            ms; // Milliseconds
-    // time_t          s;  // Seconds
-    // struct timespec spec;
-    // clock_gettime(CLOCK_REALTIME, &spec);
-    // s  = spec.tv_sec;
-    // ms = round(spec.tv_nsec / 1.0e6); // Convert nanoseconds to milliseconds
+    long            ms; // Milliseconds
+    time_t          s;  // Seconds
+    struct timespec spec;
+    clock_gettime(CLOCK_REALTIME, &spec);
+    s  = spec.tv_sec;
+    ms = round(spec.tv_nsec / 1.0e6); // Convert nanoseconds to milliseconds
     // if (ms > 999) {
-    //     s++;
-    //     ms = 0;
-    // }
-    // sprintf(timestamp_msg, "device timestamp: %"PRIdMAX".%03ld\n", (intmax_t)s, ms);
+    if (ms > 999999) {
+        s++;
+        ms = 0;
+    }
+    sprintf(timestamp_msg, "%"PRIdMAX".%06ld, %s\n", (intmax_t)s, ms, goID);
+    fileLog(timestamp_msg, "rec");
+
+    uint64_t timestamp = GooseSubscriber_getTimestamp(subscriber);
+
+    sprintf(timestamp_msg, "packet timestamp: %u.%u\n", (uint32_t) (timestamp / 1000), (uint32_t) (timestamp % 1000));
     // fileLog(timestamp_msg);
 
     // printf("  timestamp: %u.%u\n", (uint32_t) (timestamp / 1000), (uint32_t) (timestamp % 1000));
@@ -233,24 +237,24 @@ gooseListener(GooseSubscriber subscriber, void* parameter)
         }
     }
 
-    // Adds time logging for the "packet"
-    char buffered_time[26];
-    int millisec;
-    struct tm* tm_info;
-    struct timeval tv;
+    // // Adds time logging for the "packet"
+    // char buffered_time[26];
+    // int millisec;
+    // struct tm* tm_info;
+    // struct timeval tv;
 
-    gettimeofday(&tv, NULL);
+    // gettimeofday(&tv, NULL);
 
-    millisec = lrint(tv.tv_usec/1000.0); // Round to nearest millisec
-    if (millisec>=1000) { // Allow for rounding up to nearest second
-        millisec -=1000;
-        tv.tv_sec++;
-    }
+    // millisec = lrint(tv.tv_usec/1000.0); // Round to nearest millisec
+    // if (millisec>=1000) { // Allow for rounding up to nearest second
+    //     millisec -=1000;
+    //     tv.tv_sec++;
+    // }
 
-    tm_info = localtime(&tv.tv_sec);
+    // tm_info = localtime(&tv.tv_sec);
 
-    strftime(buffered_time, 26, "%Y:%m:%d %H:%M:%S", tm_info);
-    printf("At %s.%03d\n", buffered_time, millisec);
+    // strftime(buffered_time, 26, "%Y:%m:%d %H:%M:%S", tm_info);
+    // printf("At %s.%03d\n", buffered_time, millisec);
 }
 
 
@@ -334,6 +338,35 @@ void *threadedPublisher(void *input)
                     printf("Error sending message!\n");
             }
             printf("Publishing...\n");
+
+            // TODO: Need to check for device name as well.
+            if(publisher != NULL){
+                char *goID = "SEL_RTAC/LLN0$GO$GooseDSet1";
+            }
+
+            if(publisher_2 != NULL){
+                char *goID = "SEL_RTAC/LLN0$GO$GooseDSet2";
+            }
+            
+        
+
+            // char *timestamp_msg = (char*)malloc(70 * sizeof(char));
+
+            // // Creating loggging for the device
+            // long            ms; // Milliseconds
+            // time_t          s;  // Seconds
+            // struct timespec spec;
+            // clock_gettime(CLOCK_REALTIME, &spec);
+            // s  = spec.tv_sec;
+            // ms = round(spec.tv_nsec / 1.0e6); // Convert nanoseconds to milliseconds
+            // // if (ms > 999) {
+            // if (ms > 999999) {
+            //     s++;
+            //     ms = 0;
+            // }
+            // sprintf(timestamp_msg, "%"PRIdMAX".%06ld, %s\n", (intmax_t)s, ms, goID);
+            // fileLog(timestamp_msg, "rec");
+
             // Thread_sleep(publish_interval);
 
             // First option 

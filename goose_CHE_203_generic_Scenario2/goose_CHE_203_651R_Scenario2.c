@@ -33,6 +33,8 @@ LinkedList dataSetValuesTo487B_2;
 
 int updated_451_2 = 0;
 
+int code_runs = 0;
+
 struct args_rec {
     int myid;
     GooseReceiver receiver;
@@ -198,6 +200,8 @@ void *threadedPublisher(void *input)
         }
 
         Thread_sleep(publish_interval);
+
+        code_runs++;
     }
 }
 
@@ -296,7 +300,12 @@ main(int argc, char **argv)
     // if there are no problems with shared data?
     pthread_create(&tid_pub, NULL, threadedPublisher, (void *)pub_struct);
 
-    sleep(1000000);
+    // sleep(1000000);
+
+    while(code_runs < 200){
+        sleep(1);
+        // printf("CODE RUNS %d \n", code_runs);
+    }
 
     GoosePublisher_destroy(publisher);
     GoosePublisher_destroy(publisher_2);
