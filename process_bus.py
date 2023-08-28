@@ -487,10 +487,6 @@ class process_bus(app_manager.RyuApp):
         command=ofproto.OFPFC_ADD
         waiters = {}
 
-
-        block_exists = [tuple for tuple in self.block_comms if any(dst == i for i in tuple) 
-                                                            and any(src == i for i in tuple)]
-
         # if eth.ethertype == ether_types.ETH_TYPE_8021Q:
         #     self.logger.info("Possibly with protocol GOOSE")
         #     self.logger.info(eth.ethertype)
@@ -608,6 +604,9 @@ class process_bus(app_manager.RyuApp):
         # else:
         #     print("Multicast packet from dropped")
         #     return
+
+        block_exists = [tuple for tuple in self.block_comms if any(dst == i for i in tuple) 
+                                                            and any(src == i for i in tuple)]
 
         if (not block_exists):
 

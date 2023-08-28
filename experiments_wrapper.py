@@ -53,8 +53,8 @@ def run_process(program_command, program_type, wait_time):
 
 def main(security=False):
 
-    # wait_time = 60
-    wait_time = 15
+    wait_time = 30
+    # wait_time = 15
 
     # program_command = ["python", "timer.py", "10"]
     # NOTE: Below is an example of how each individual device should be run inside the simulation
@@ -111,7 +111,7 @@ def main(security=False):
         if handle_2:
             handle_2.terminate()
             print("handle_2 here terminated")
-            os.killpg(os.getpgid(handle_2.pid), signal.SIGKILL)
+            # os.killpg(os.getpgid(handle_2.pid), signal.SIGKILL)
 
         # time.sleep(12)
 
@@ -128,7 +128,7 @@ def main(security=False):
 
 if __name__ == '__main__':
     
-    security=False
-    # security=True
+    # security=False
+    security=True
 
     main(security=security)

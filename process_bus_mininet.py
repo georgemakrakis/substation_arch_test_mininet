@@ -106,7 +106,7 @@ def main(scenario=0, run=1, security=False):
         prefix="learning_"
 
 
-    scenario_1_hosts = ["787_2", "451_2", "RTAC", "651R_2",]
+    scenario_1_hosts = ["787_2", "451_2", "RTAC", "651R_2", "IDS_1"]
     scenario_2_hosts = ["RTAC", "651R_2", "787_2", "451_2", "487B_2", "351_2"]
     
     hosts = net.hosts

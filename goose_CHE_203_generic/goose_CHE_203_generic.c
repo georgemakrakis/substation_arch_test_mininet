@@ -59,6 +59,8 @@ char buffer_time[26];
 
 int updated = 0;
 
+int code_runs = 0;
+
 void printLinkedList(LinkedList list){
 
     LinkedList valueElement = LinkedList_getNext(list);
@@ -436,7 +438,7 @@ void *threadedPublisher(void *input)
 
             // This could be step a) 
             if (strcmp(device_name, "651R_2") == 0 && i == max_i && step_a_done == 0) {
-                printf("=================== STEP A)  ===================");
+                printf("=================== STEP A)  ===================\n");
                 LinkedList prev_Val = LinkedList_get(dataSetValues, 0);
 
                 // LinkedList_remove(dataSetValues, prev_Val);
@@ -461,7 +463,7 @@ void *threadedPublisher(void *input)
             // Combined all the events in the single "if block".
             if (strcmp(device_name, "RTAC") == 0 && i == max_i_2 && step_e_done == 0) {
 
-                printf("=================== ISSUE FIXED, RESTORING ( STEP E) ) ===================");
+                printf("=================== ISSUE FIXED, RESTORING ( STEP E) ) ===================\n");
                 
                 // For RTAC --> 651-2
 
@@ -525,6 +527,8 @@ void *threadedPublisher(void *input)
             // }
 
             Thread_sleep(publish_interval);
+            
+            code_runs++;
     }
 }
 
@@ -906,7 +910,13 @@ main(int argc, char **argv)
 
     pthread_create(&tid_pub, NULL, threadedPublisher, (void *)pub_struct);
 
-    sleep(1000000);
+    // sleep(1000000);
+
+    while(code_runs < 200){
+        sleep(1);
+        // printf("CODE RUNS %d \n", code_runs);
+    }
+
 
     GoosePublisher_destroy(publisher);
 

@@ -141,6 +141,9 @@ def calculate (pcap_1, pcap_2, security=False):
             # Use PYASN1 to parse the Goose PDU
             gd = goose_pdu_decode(gpdu)
 
+            if (gd[5] == 1 and (gd[6] == 0)):
+                continue
+
             eth = packet[Ether]
             # TODO: Here we should also record the stNum and sqNum to correlate them later
             # We should also do it for the rest of the multicast addresses.
@@ -156,8 +159,8 @@ def calculate (pcap_1, pcap_2, security=False):
                 total += 1
             elif eth.dst == "01:0c:cd:01:00:02":
                 # if (gd[6] == 0):
-                if (gd[5] == 1 and (gd[6] == 0) and security):
-                    continue
+                # if (gd[5] == 1 and (gd[6] == 0) and security):
+                #     continue
                  
                 lst_2_1.append(packet.time)
                 total += 1
@@ -206,11 +209,14 @@ def calculate (pcap_1, pcap_2, security=False):
 
             # NOTE: To fix weird duplicate packet problem, might not needed
             # if (index == 0 or index == 1):
+
+            if (gd[5] == 1 and (gd[6] == 0)):
+                continue
             
             eth = packet[Ether]
             if eth.dst == "01:0c:cd:01:00:01":
-                if (gd[5] == 1 and (gd[6] == 0) and security):
-                    continue
+                # if (gd[5] == 1 and (gd[6] == 0) and security):
+                #     continue
                
                 lst_1_2.append(packet.time)
                 total += 1
@@ -237,16 +243,16 @@ def calculate (pcap_1, pcap_2, security=False):
                 
                 # TODO: Needs to be fixed.
                 # if (gd[5] == 1 and (gd[6] == 0 or gd[6] == 1)):
-                if (gd[5] == 1 and (gd[6] == 0) and security):
-                    continue
+                # if (gd[5] == 1 and (gd[6] == 0) and security):
+                #     continue
 
                 lst_3_2.append(packet.time)
                 total += 1
             elif eth.dst == "01:0c:cd:01:00:04":
                 # TODO: Needs to be fixed.
                 # if (gd[5] == 1 and (gd[6] == 0 or gd[6] == 1)):
-                if (gd[5] == 1 and (gd[6] == 0) and security):
-                    continue
+                # if (gd[5] == 1 and (gd[6] == 0) and security):
+                #     continue
                 lst_4_2.append(packet.time)
                 total += 1
 
@@ -309,11 +315,11 @@ def main(pcap_1="", pcap_2=""):
 
     for i in range(0, 10):
     # for i in range(0, 1):
-        # directory  = "../security_scenario_1_exp_{0}".format(i)
-        # security = True
+        directory  = "../security_scenario_1_exp_{0}".format(i)
+        security = True
         
-        directory  = "../learning_scenario_1_exp_{0}".format(i)
-        security = False
+        # directory  = "../learning_scenario_1_exp_{0}".format(i)
+        # security = False
         
         pcap_1 = None
         pcap_2 = None
