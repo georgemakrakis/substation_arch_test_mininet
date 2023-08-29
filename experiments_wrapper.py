@@ -129,7 +129,7 @@ def main(security=False):
 
 if __name__ == '__main__':
     
-    security=False
-    # security=True
+    # security=False
+    security=True
 
     main(security=security)

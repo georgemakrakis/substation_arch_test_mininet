@@ -6,6 +6,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pds
 
+import csv 
+
 ###############################
 # Import SCAPY and ASN1 modules
 ###############################
@@ -65,6 +67,10 @@ multicast_addresses_scenario_1 = [
     "01:0c:cd:01:00:03",
     "01:0c:cd:01:00:04"
 ]
+
+sec_bars = []
+no_sec_bars = []
+
 
 GOOSE_TYPE = 0x88b8
 def gooseTest(pkt):
@@ -317,103 +323,164 @@ def calculate (pcap_1, pcap_2, security=False):
 
 def main(pcap_1="", pcap_2=""):
 
-    for i in range(0, 100):
-    # for i in range(0, 1):
-        directory  = "../scenario_1_exp/security_scenario_1_exp_{0}".format(i)
-        security = True
+    for j in [0, 1]:
+
+        for i in range(0, 100):
+        # for i in range(0, 1):
+            if j == 0:
+                directory  = "../scenario_1_exp/security_scenario_1_exp_{0}".format(i)
+                security = True
+            else:
+                directory  = "../scenario_1_exp/learning_scenario_1_exp_{0}".format(i)
+                security = False
+            
+            pcap_1 = None
+            pcap_2 = None
+
+            # :01 and :02
+            pcap_1 = "{0}/exp_{1}_651R_2.pcap".format(directory, i)
+            pcap_2 = "{0}/exp_{1}_RTAC.pcap".format(directory, i)
+            calculate(pcap_1=pcap_1, pcap_2=pcap_2, security=security)
+            print("===============================")
+
+            # :03
+            pcap_1 = "{0}/exp_{1}_787_2.pcap".format(directory, i)
+            pcap_2 = "{0}/exp_{1}_RTAC.pcap".format(directory, i)
+            calculate(pcap_1=pcap_1, pcap_2=pcap_2, security=security)
+            print("===============================")
+
+            # :04
+            pcap_1 = "{0}/exp_{1}_451_2.pcap".format(directory, i)
+            pcap_2 = "{0}/exp_{1}_RTAC.pcap".format(directory, i)
+            calculate(pcap_1=pcap_1, pcap_2=pcap_2, security=security)
+
+            print("===============================")
+
+        print("01:0c:cd:01:00:01")
+
+        if final_lst_01 :
+
+            # x = np.arange(start=0, stop=len(final_lst_01), step=1)
+            # y = final_lst_01
+            
+            # plt.plot(x, y)
+            # plt.xlabel("Time (sec)") 
+            # plt.ylabel("Latency (sec)")
+            # plt.title("Any suitable title")
+            # # plt.show()
+            # plt.savefig("test.png")
+
+            # a = [1, 2, 2.5, 3, 3.5, 4, 5]
+            # series = pds.Series(final_lst_01)
+            # series = series.astype('float')
+            # # Draw a KDE plot
+
+            # series.plot.kde()
+
+            # plt.savefig("test-density.png")
         
-        # directory  = "../scenario_1_exp/learning_scenario_1_exp_{0}".format(i)
-        # security = False
+            print("FINAL len {0}".format(len(final_lst_01)))
+            print("Average (mean) E2E delay: {0}".format(statistics.mean(final_lst_01)))
+            print("Standard deviation: {0}".format(statistics.stdev(final_lst_01)))
+            print("Variance: {0}".format(statistics.variance(final_lst_01)))
+            print("Min: {0}".format(min(final_lst_01)))
+            print("Max: {0}".format(max(final_lst_01)))
+            # Is the below correct?
+            print("Standard error of the mean {0}".format(float(statistics.stdev(final_lst_01))/math.sqrt(len(final_lst_01))))
+
+        print("01:0c:cd:01:00:02")
+
+        if final_lst_02 :
+            print("FINAL len {0}".format(len(final_lst_02)))
+            print("Average (mean) E2E delay: {0}".format(statistics.mean(final_lst_02)))
+            print("Standard deviation: {0}".format(statistics.stdev(final_lst_02)))
+            print("Variance: {0}".format(statistics.variance(final_lst_02)))
+            print("Min: {0}".format(min(final_lst_02)))
+            print("Max: {0}".format(max(final_lst_02)))
+            # Is the below correct?
+            print("Standard error of the mean {0}".format(float(statistics.stdev(final_lst_02))/math.sqrt(len(final_lst_02))))
+
+        print("01:0c:cd:01:00:03")
+
+        if final_lst_03 :
+            print("FINAL len {0}".format(len(final_lst_03)))
+            print("Average (mean) E2E delay: {0}".format(statistics.mean(final_lst_03)))
+            print("Standard deviation: {0}".format(statistics.stdev(final_lst_03)))
+            print("Variance: {0}".format(statistics.variance(final_lst_03)))
+            print("Min: {0}".format(min(final_lst_03)))
+            print("Max: {0}".format(max(final_lst_03)))
+            # Is the below correct?
+            print("Standard error of the mean {0}".format(float(statistics.stdev(final_lst_03))/math.sqrt(len(final_lst_03))))
+
+        print("01:0c:cd:01:00:04")
+
+        if final_lst_04 :
+            print("FINAL len {0}".format(len(final_lst_04)))
+            print("Average (mean) E2E delay: {0}".format(statistics.mean(final_lst_04)))
+            print("Standard deviation: {0}".format(statistics.stdev(final_lst_04)))
+            print("Variance: {0}".format(statistics.variance(final_lst_04)))
+            print("Min: {0}".format(min(final_lst_04)))
+            print("Max: {0}".format(max(final_lst_04)))
+            # Is the below correct?
+            print("Standard error of the mean {0}".format(float(statistics.stdev(final_lst_04))/math.sqrt(len(final_lst_04))))
+
+
+        # field names 
+        fields = ['Address', 'Mean-E2E_Latency'] 
+            
+        # data rows of csv file 
+        rows = [ ['01:0c:cd:01:00:01', statistics.mean(final_lst_01)], 
+                ['01:0c:cd:01:00:02', statistics.mean(final_lst_02)], 
+                ['01:0c:cd:01:00:03', statistics.mean(final_lst_03)], 
+                ['01:0c:cd:01:00:04', statistics.mean(final_lst_04)]
+            ]
+            
+        if(security):
+            sec_bars = [statistics.mean(final_lst_01), statistics.mean(final_lst_02), statistics.mean(final_lst_03), statistics.mean(final_lst_04)]
+            sec_bars = [i * 1000 for i in sec_bars]
+                
+            # name of csv file 
+            filename = "security_results.csv"
+                
+          
+        else:
+            no_sec_bars = [statistics.mean(final_lst_01), statistics.mean(final_lst_02), statistics.mean(final_lst_03), statistics.mean(final_lst_04)]
+            no_sec_bars = [i * 1000 for i in no_sec_bars]
+
+            # name of csv file 
+            filename = "learning_results.csv"
         
-        pcap_1 = None
-        pcap_2 = None
+        # writing to csv file 
+        with open(filename, 'w') as csvfile: 
+            # creating a csv writer object 
+            csvwriter = csv.writer(csvfile) 
+                
+            # writing the fields 
+            csvwriter.writerow(fields) 
+                
+            # writing the data rows 
+            csvwriter.writerows(rows)
+            
+    # # set width of bar
+    # barWidth = 0.3
+    # fig = plt.subplots(figsize =(12, 8))
 
-        # :01 and :02
-        pcap_1 = "{0}/exp_{1}_651R_2.pcap".format(directory, i)
-        pcap_2 = "{0}/exp_{1}_RTAC.pcap".format(directory, i)
-        calculate(pcap_1=pcap_1, pcap_2=pcap_2, security=security)
-        print("===============================")
+    # ind = np.arange(len(multicast_addresses_scenario_1))
 
-        # :03
-        pcap_1 = "{0}/exp_{1}_787_2.pcap".format(directory, i)
-        pcap_2 = "{0}/exp_{1}_RTAC.pcap".format(directory, i)
-        calculate(pcap_1=pcap_1, pcap_2=pcap_2, security=security)
-        print("===============================")
-
-        # :04
-        pcap_1 = "{0}/exp_{1}_451_2.pcap".format(directory, i)
-        pcap_2 = "{0}/exp_{1}_RTAC.pcap".format(directory, i)
-        calculate(pcap_1=pcap_1, pcap_2=pcap_2, security=security)
-
-        print("===============================")
-
-    print("01:0c:cd:01:00:01")
-
-    if final_lst_01 :
-
-        x = np.arange(start=0, stop=len(final_lst_01), step=1)
-        y = final_lst_01
-        
-        # plt.plot(x, y)
-        # plt.xlabel("Time (sec)") 
-        # plt.ylabel("Latency (sec)")
-        # plt.title("Any suitable title")
-        # # plt.show()
-        # plt.savefig("test.png")
-
-        a = [1, 2, 2.5, 3, 3.5, 4, 5]
-        series = pds.Series(final_lst_01)
-        series = series.astype('float')
-        # Draw a KDE plot
-
-        series.plot.kde()
-
-        plt.savefig("test-density.png")
+    #  # Make the plot
+    # plt.bar(ind, sec_bars, color ='b', width = barWidth,
+    #         label ='Mean Time (w/ security)')
+    # plt.bar(ind+barWidth, no_sec_bars, color ='g', width = barWidth,
+    #         label ='Mean Time (w/o security)')
     
-        print("FINAL len {0}".format(len(final_lst_01)))
-        print("Average (mean) E2E delay: {0}".format(statistics.mean(final_lst_01)))
-        print("Standard deviation: {0}".format(statistics.stdev(final_lst_01)))
-        print("Variance: {0}".format(statistics.variance(final_lst_01)))
-        print("Min: {0}".format(min(final_lst_01)))
-        print("Max: {0}".format(max(final_lst_01)))
-        # Is the below correct?
-        print("Standard error of the mean {0}".format(float(statistics.stdev(final_lst_01))/math.sqrt(len(final_lst_01))))
+    # # Adding Xticks
+    # plt.xlabel('Multicast Addresses', fontweight ='bold', fontsize = 15)
+    # plt.ylabel('Mean E2E latency (ms)', fontweight ='bold', fontsize = 15)
+    # plt.xticks(ind + barWidth / 2, multicast_addresses_scenario_1)
+    
+    # plt.legend()
 
-    print("01:0c:cd:01:00:02")
-
-    if final_lst_02 :
-        print("FINAL len {0}".format(len(final_lst_02)))
-        print("Average (mean) E2E delay: {0}".format(statistics.mean(final_lst_02)))
-        print("Standard deviation: {0}".format(statistics.stdev(final_lst_02)))
-        print("Variance: {0}".format(statistics.variance(final_lst_02)))
-        print("Min: {0}".format(min(final_lst_02)))
-        print("Max: {0}".format(max(final_lst_02)))
-        # Is the below correct?
-        print("Standard error of the mean {0}".format(float(statistics.stdev(final_lst_02))/math.sqrt(len(final_lst_02))))
-
-    print("01:0c:cd:01:00:03")
-
-    if final_lst_03 :
-        print("FINAL len {0}".format(len(final_lst_03)))
-        print("Average (mean) E2E delay: {0}".format(statistics.mean(final_lst_03)))
-        print("Standard deviation: {0}".format(statistics.stdev(final_lst_03)))
-        print("Variance: {0}".format(statistics.variance(final_lst_03)))
-        print("Min: {0}".format(min(final_lst_03)))
-        print("Max: {0}".format(max(final_lst_03)))
-        # Is the below correct?
-        print("Standard error of the mean {0}".format(float(statistics.stdev(final_lst_03))/math.sqrt(len(final_lst_03))))
-
-    print("01:0c:cd:01:00:04")
-
-    if final_lst_04 :
-        print("FINAL len {0}".format(len(final_lst_04)))
-        print("Average (mean) E2E delay: {0}".format(statistics.mean(final_lst_04)))
-        print("Standard deviation: {0}".format(statistics.stdev(final_lst_04)))
-        print("Variance: {0}".format(statistics.variance(final_lst_04)))
-        print("Min: {0}".format(min(final_lst_04)))
-        print("Max: {0}".format(max(final_lst_04)))
-        # Is the below correct?
-        print("Standard error of the mean {0}".format(float(statistics.stdev(final_lst_04))/math.sqrt(len(final_lst_04))))
+    # plt.savefig("test-bar.png")
 
     return
 

@@ -16,6 +16,7 @@ from mininet.topo import Topo
 from mininet.net import Mininet
 from mininet.node import OVSSwitch, Controller, RemoteController
 from mininet.cli import CLI
+from mininet.link import TCLink
 
 class process_bus( Topo ):
     def build( self ):
@@ -69,14 +70,14 @@ class process_bus( Topo ):
             self.IEDs[IEDs_keys[i]].append(f"00:00:00:00:00:{j_str}")
 
             IED = self.addHost( IEDs_keys[i], ip=self.IEDs[IEDs_keys[i]][0], mac=self.IEDs[IEDs_keys[i]][1] )
-            self.addLink( IED, switch1 )
+            self.addLink( IED, switch1, cls=TCLink, bw=100)
 
         # Assigning IDS as well
         self.IDSs["IDS_1"].append(f"192.168.1.120/24")
         self.IDSs["IDS_1"].append(f"00:00:00:00:11:11")
 
         IDS = self.addHost( "IDS_1", ip=self.IDSs["IDS_1"][0], mac=self.IDSs["IDS_1"][1] )
-        self.addLink( IDS, switch1, port1=20, port2=20 )
+        self.addLink( IDS, switch1, cls=TCLink, bw=100, port1=20, port2=20 )
 
 
 # topos = { "process_bus": ( lambda: process_bus() ) }
@@ -141,10 +142,10 @@ def main(scenario=0, run=1, security=False):
         #     if host.name in scenario_1_hosts:
         #         host.cmd("bash -c '/home/mininet/substation_arch_test/goose_CHE_203_generic/goose_CHE_203_generic {0}-eth0 {0}' &".format(host.name))
 
-        hosts[8].cmd("bash -c '/home/mininet/substation_arch_test/goose_CHE_203_generic/goose_CHE_203_generic 787_2-eth0 787_2' &")
-        hosts[3].cmd("bash -c '/home/mininet/substation_arch_test/goose_CHE_203_generic/goose_CHE_203_generic 451_2-eth0 451_2' &")
-        hosts[10].cmd("bash -c '/home/mininet/substation_arch_test/goose_CHE_203_generic/goose_CHE_203_generic RTAC-eth0 RTAC' &")
-        hosts[7].cmd("bash -c '/home/mininet/substation_arch_test/goose_CHE_203_generic/goose_CHE_203_generic 651R_2-eth0 651R_2' &")
+        # hosts[8].cmd("bash -c '/home/mininet/substation_arch_test/goose_CHE_203_generic/goose_CHE_203_generic 787_2-eth0 787_2' &")
+        # hosts[3].cmd("bash -c '/home/mininet/substation_arch_test/goose_CHE_203_generic/goose_CHE_203_generic 451_2-eth0 451_2' &")
+        # hosts[10].cmd("bash -c '/home/mininet/substation_arch_test/goose_CHE_203_generic/goose_CHE_203_generic RTAC-eth0 RTAC' &")
+        # hosts[7].cmd("bash -c '/home/mininet/substation_arch_test/goose_CHE_203_generic/goose_CHE_203_generic 651R_2-eth0 651R_2' &")
     
     elif scenario == 2:
 
@@ -182,9 +183,9 @@ def main(scenario=0, run=1, security=False):
         # print(hosts)
         # print(hosts[7].cmd("ip a"))
 
-    # CLI(net)
+    CLI(net)
 
-    time.sleep(60)
+    # time.sleep(60)
 
     net.stop()
     return
