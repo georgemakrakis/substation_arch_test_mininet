@@ -1,3 +1,4 @@
+from pathlib import Path
 from scapy.all import *
 import datetime
 import statistics
@@ -426,13 +427,13 @@ def main(pcap_1="", pcap_2=""):
 
 
         # field names 
-        fields = ['Address', 'Mean-E2E_Latency'] 
+        fields = ["Address", "Mean-E2E_Latency"] 
             
         # data rows of csv file 
-        rows = [ ['01:0c:cd:01:00:01', statistics.mean(final_lst_01)], 
-                ['01:0c:cd:01:00:02', statistics.mean(final_lst_02)], 
-                ['01:0c:cd:01:00:03', statistics.mean(final_lst_03)], 
-                ['01:0c:cd:01:00:04', statistics.mean(final_lst_04)]
+        rows = [ ["01:0c:cd:01:00:01", statistics.mean(final_lst_01)], 
+                ["01:0c:cd:01:00:02", statistics.mean(final_lst_02)], 
+                ["01:0c:cd:01:00:03", statistics.mean(final_lst_03)], 
+                ["01:0c:cd:01:00:04", statistics.mean(final_lst_04)]
             ]
             
         if(security):
@@ -451,7 +452,7 @@ def main(pcap_1="", pcap_2=""):
             filename = "learning_results.csv"
         
         # writing to csv file 
-        with open(filename, 'w') as csvfile: 
+        with open(filename, "w") as csvfile: 
             # creating a csv writer object 
             csvwriter = csv.writer(csvfile) 
                 
@@ -460,27 +461,50 @@ def main(pcap_1="", pcap_2=""):
                 
             # writing the data rows 
             csvwriter.writerows(rows)
+
+
+        # ================================\
+        if(security):
+            df = pds.DataFrame([], columns=["01:0c:cd:01:00:01"])
+            df["01:0c:cd:01:00:01"] = final_lst_01
+            filepath = Path('./security_latencies_01.csv')
+            df.to_csv(filepath)
             
-    # # set width of bar
-    # barWidth = 0.3
-    # fig = plt.subplots(figsize =(12, 8))
+            df = pds.DataFrame([], columns=["01:0c:cd:01:00:02"])
+            df["01:0c:cd:01:00:02"] = final_lst_02
+            filepath = Path('./security_latencies_02.csv')
+            df.to_csv(filepath)
 
-    # ind = np.arange(len(multicast_addresses_scenario_1))
+            df = pds.DataFrame([], columns=["01:0c:cd:01:00:03"])
+            df["01:0c:cd:01:00:03"] = final_lst_03
+            filepath = Path('./security_latencies_03.csv')
+            df.to_csv(filepath)
+        
+            df = pds.DataFrame([], columns=["01:0c:cd:01:00:04"])
+            df["01:0c:cd:01:00:04"] = final_lst_04
+            filepath = Path('./security_latencies_04.csv')
+            df.to_csv(filepath)
 
-    #  # Make the plot
-    # plt.bar(ind, sec_bars, color ='b', width = barWidth,
-    #         label ='Mean Time (w/ security)')
-    # plt.bar(ind+barWidth, no_sec_bars, color ='g', width = barWidth,
-    #         label ='Mean Time (w/o security)')
-    
-    # # Adding Xticks
-    # plt.xlabel('Multicast Addresses', fontweight ='bold', fontsize = 15)
-    # plt.ylabel('Mean E2E latency (ms)', fontweight ='bold', fontsize = 15)
-    # plt.xticks(ind + barWidth / 2, multicast_addresses_scenario_1)
-    
-    # plt.legend()
+        else:
+            df = pds.DataFrame([], columns=["01:0c:cd:01:00:01"])
+            df["01:0c:cd:01:00:01"] = final_lst_01
+            filepath = Path('./learning_latencies_01.csv')
+            df.to_csv(filepath)
+            
+            df = pds.DataFrame([], columns=["01:0c:cd:01:00:02"])
+            df["01:0c:cd:01:00:02"] = final_lst_02
+            filepath = Path('./learning_latencies_02.csv')
+            df.to_csv(filepath)
 
-    # plt.savefig("test-bar.png")
+            df = pds.DataFrame([], columns=["01:0c:cd:01:00:03"])
+            df["01:0c:cd:01:00:03"] = final_lst_03
+            filepath = Path('./learning_latencies_03.csv')
+            df.to_csv(filepath)
+        
+            df = pds.DataFrame([], columns=["01:0c:cd:01:00:04"])
+            df["01:0c:cd:01:00:04"] = final_lst_04
+            filepath = Path('./learning_latencies_04.csv')
+            df.to_csv(filepath)
 
     return
 
