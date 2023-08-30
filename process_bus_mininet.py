@@ -142,10 +142,10 @@ def main(scenario=0, run=1, security=False):
         #     if host.name in scenario_1_hosts:
         #         host.cmd("bash -c '/home/mininet/substation_arch_test/goose_CHE_203_generic/goose_CHE_203_generic {0}-eth0 {0}' &".format(host.name))
 
-        # hosts[8].cmd("bash -c '/home/mininet/substation_arch_test/goose_CHE_203_generic/goose_CHE_203_generic 787_2-eth0 787_2' &")
-        # hosts[3].cmd("bash -c '/home/mininet/substation_arch_test/goose_CHE_203_generic/goose_CHE_203_generic 451_2-eth0 451_2' &")
-        # hosts[10].cmd("bash -c '/home/mininet/substation_arch_test/goose_CHE_203_generic/goose_CHE_203_generic RTAC-eth0 RTAC' &")
-        # hosts[7].cmd("bash -c '/home/mininet/substation_arch_test/goose_CHE_203_generic/goose_CHE_203_generic 651R_2-eth0 651R_2' &")
+        hosts[8].cmd("bash -c '/home/mininet/substation_arch_test/goose_CHE_203_generic/goose_CHE_203_generic 787_2-eth0 787_2' &")
+        hosts[3].cmd("bash -c '/home/mininet/substation_arch_test/goose_CHE_203_generic/goose_CHE_203_generic 451_2-eth0 451_2' &")
+        hosts[10].cmd("bash -c '/home/mininet/substation_arch_test/goose_CHE_203_generic/goose_CHE_203_generic RTAC-eth0 RTAC' &")
+        hosts[7].cmd("bash -c '/home/mininet/substation_arch_test/goose_CHE_203_generic/goose_CHE_203_generic 651R_2-eth0 651R_2' &")
     
     elif scenario == 2:
 
@@ -183,9 +183,9 @@ def main(scenario=0, run=1, security=False):
         # print(hosts)
         # print(hosts[7].cmd("ip a"))
 
-    CLI(net)
+    # CLI(net)
 
-    # time.sleep(60)
+    time.sleep(60)
 
     net.stop()
     return
