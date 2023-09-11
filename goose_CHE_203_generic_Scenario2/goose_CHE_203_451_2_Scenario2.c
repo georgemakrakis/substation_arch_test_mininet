@@ -153,9 +153,9 @@ void *threadedPublisher(void *input)
 
     int i = 0;
     // Intervals in ms
-    int min_interval = 4;
+    int min_interval = 30;
     int publish_interval = min_interval;
-    int max_interval = 1000;
+    int max_interval = 100;
     
     // NOTE: Used as a simple condition to increase the StNum
     int max_i = 30;
@@ -167,12 +167,12 @@ void *threadedPublisher(void *input)
         }
         printf("Publishing...\n");
 
-       if( i == 0 || i == 1) {
-            GoosePublisher_setTimeAllowedToLive(publisher, 2 * min_interval);
+        if( i == 0 || i == 1) {
+            GoosePublisher_setTimeAllowedToLive(publisher, 3 * min_interval);
             publish_interval = min_interval;
         }
         else if( i == 2) {
-            GoosePublisher_setTimeAllowedToLive(publisher, 2 * min_interval);
+            GoosePublisher_setTimeAllowedToLive(publisher, 2 * max_interval);
             publish_interval = 2 * publish_interval;
         }
         else {

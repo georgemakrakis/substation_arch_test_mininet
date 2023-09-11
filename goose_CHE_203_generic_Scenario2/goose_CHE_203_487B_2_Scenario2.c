@@ -77,15 +77,15 @@ void printLinkedList(LinkedList list){
 static void
 gooseListener(GooseSubscriber subscriber, void* parameter)
 {
-    printf("GOOSE event:\n");
-    printf("  stNum: %u sqNum: %u\n", GooseSubscriber_getStNum(subscriber),
-            GooseSubscriber_getSqNum(subscriber));
-    printf("  timeToLive: %u\n", GooseSubscriber_getTimeAllowedToLive(subscriber));
+    // printf("GOOSE event:\n");
+    // printf("  stNum: %u sqNum: %u\n", GooseSubscriber_getStNum(subscriber),
+    //         GooseSubscriber_getSqNum(subscriber));
+    // printf("  timeToLive: %u\n", GooseSubscriber_getTimeAllowedToLive(subscriber));
 
     uint64_t timestamp = GooseSubscriber_getTimestamp(subscriber);
 
-    printf("  timestamp: %u.%u\n", (uint32_t) (timestamp / 1000), (uint32_t) (timestamp % 1000));
-    printf("  message is %s\n", GooseSubscriber_isValid(subscriber) ? "valid" : "INVALID");
+    // printf("  timestamp: %u.%u\n", (uint32_t) (timestamp / 1000), (uint32_t) (timestamp % 1000));
+    // printf("  message is %s\n", GooseSubscriber_isValid(subscriber) ? "valid" : "INVALID");
 
     MmsValue* values = GooseSubscriber_getDataSetValues(subscriber);
 
@@ -93,11 +93,11 @@ gooseListener(GooseSubscriber subscriber, void* parameter)
 
     MmsValue_printToBuffer(values, buffer, 1024);
 
-    printf("  allData: %s\n", buffer);
+    // printf("  allData: %s\n", buffer);
 
     if (MmsValue_getType(values) == MMS_ARRAY) {
         // printf("received binary control command: ");
-        printf("received MMS ARRAY\n");
+        // printf("received MMS ARRAY\n");
 
         int values_size = MmsValue_getArraySize(values);
 
@@ -105,7 +105,7 @@ gooseListener(GooseSubscriber subscriber, void* parameter)
             MmsValue* elementValue = MmsValue_getElement(values, i);
 
             if (elementValue && strcmp(GooseSubscriber_getGoCbRef(subscriber), "SEL_451_2/LLN0$GO$GooseDSet1") == 0) {
-                printf("VALUES FROM 451_2\n");
+                // printf("VALUES FROM 451_2\n");
 
                 LinkedList prev_Val = LinkedList_get(dataSetValuesReceivedFrom451_2, i);
 
@@ -133,7 +133,8 @@ void *threadedReceiver(void *input)
         signal(SIGINT, sigint_handler);
 
         while (running) {
-            Thread_sleep(100);
+            // Thread_sleep(100);
+            Thread_sleep(50);
         }
     }
     else {
@@ -153,12 +154,12 @@ void *threadedPublisher(void *input)
 
     int i = 0;
     // Intervals in ms
-    int min_interval = 4;
+    int min_interval = 30;
     int publish_interval = min_interval;
     int max_interval = 100;
 
     // NOTE: Used as a simple condition to increase the StNum
-    int max_i = 30;
+    int max_i = 32;
 
     int step_b_done = 0;
 
@@ -357,6 +358,8 @@ main(int argc, char **argv)
     pub_struct->publisher_2 = publisher_2;
     pub_struct->publisher_3 = publisher_3;
     pub_struct->myid = tid_pub;
+
+    sleep(1);
     
     // TODO: Can we launch those 3 publishers as separate threads
     // if there are no problems with shared data?

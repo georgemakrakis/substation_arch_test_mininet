@@ -51,7 +51,7 @@ def run_process(program_command, program_type, wait_time):
     
     return
 
-def main(security=False):
+def main(security=False, scenario=1):
 
     wait_time = 30
     # wait_time = 15
@@ -72,8 +72,8 @@ def main(security=False):
 
    
     # for i in range(0, 1):
-    # for i in range(0, 10):
-    for i in range(0, 1000):
+    for i in range(0, 100):
+    # for i in range(0, 1000):
 
         if security:
 
@@ -88,9 +88,9 @@ def main(security=False):
         # TODO: We need to have a variable for the scenario as well.
         # program_command = ["sudo", "mn", "-c", "&&", "sudo", "python", "process_bus_mininet.py", "1", str(2)]
         if security:
-            program_command = ["sudo", "python", "process_bus_mininet.py", "1", str(i), "True"]
+            program_command = ["sudo", "python", "process_bus_mininet.py", str(scenario), str(i), "True"]
         else:
-            program_command = ["sudo", "python", "process_bus_mininet.py", "1", str(i), "False"]
+            program_command = ["sudo", "python", "process_bus_mininet.py", str(scenario), str(i), "False"]
 
         program_type = "mininet"
         
@@ -132,4 +132,7 @@ if __name__ == '__main__':
     security=False
     # security=True
 
-    main(security=security)
+    # scenario = 1
+    scenario = 2
+
+    main(security=security, scenario=scenario)

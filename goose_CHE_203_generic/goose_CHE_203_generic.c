@@ -352,7 +352,6 @@ void *threadedPublisher(void *input)
             }
             printf("Publishing...\n");
 
-            // TODO: Need to check for device name as well.
             if(publisher != NULL && strcmp(device_name, "RTAC") == 0){
                 char *goID = "SEL_RTAC/LLN0$GO$GooseDSet1";
 

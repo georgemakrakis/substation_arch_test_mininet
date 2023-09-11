@@ -149,43 +149,46 @@ def main(scenario=0, run=1, security=False):
     
     elif scenario == 2:
 
-        new_dir = "./scenario_2_exp_{0}".format(run)
+        new_dir = "./scenario_2_exp/{0}scenario_2_exp_{1}".format(prefix, run)
 
         if not os.path.exists(new_dir):
             os.mkdir(new_dir)
 
         # We need to have this specific sequence to make sure the messages arrive in a proper order
         # Therefore we hardcode the commands.
-        hosts[8].cmd("tcpdump -i 787_2-eth0 -w ./{0}/exp_{1}_787_2.pcap &".format(new_dir, run))
+        hosts[8].cmd("tcpdump -i 787_2-eth0 -nnq -w ./{0}/exp_{1}_787_2.pcap &".format(new_dir, run))
         time.sleep(0.1)
-        hosts[8].cmd("bash -c '/home/mininet/substation_arch_test/goose_CHE_203_generic_Scenario2/goose_CHE_203_787_2_Scenario2 787_2-eth0' &")
     
-        hosts[3].cmd("tcpdump -i 451_2-eth0 -w ./{0}/exp_{1}_451_2.pcap &".format(new_dir, run))
+        hosts[3].cmd("tcpdump -i 451_2-eth0 -nnq -w ./{0}/exp_{1}_451_2.pcap &".format(new_dir, run))
         time.sleep(0.1)
-        hosts[3].cmd("bash -c '/home/mininet/substation_arch_test/goose_CHE_203_generic_Scenario2/goose_CHE_203_451_2_Scenario2 451_2-eth0' &")
-    
-        hosts[10].cmd("tcpdump -i RTAC-eth0 -w ./{0}/exp_{1}_RTAC.pcap &".format(new_dir, run))
-        time.sleep(0.1)
-        hosts[10].cmd("bash -c '/home/mininet/substation_arch_test/goose_CHE_203_generic_Scenario2/goose_CHE_203_RTAC_Scenario2 RTAC-eth0' &")
-    
-        hosts[4].cmd("tcpdump -i 487B_2-eth0 -w ./{0}/exp_{1}_487B_2.pcap &".format(new_dir, run))
-        time.sleep(0.1)
-        hosts[4].cmd("bash -c '/home/mininet/substation_arch_test/goose_CHE_203_generic_Scenario2/goose_CHE_203_487B_2_Scenario2 487B_2-eth0' &")
         
-        hosts[1].cmd("tcpdump -i 351_2-eth0 -w ./{0}/exp_{1}_351_2.pcap &".format(new_dir, run))
+        hosts[10].cmd("tcpdump -i RTAC-eth0 -nnq -w ./{0}/exp_{1}_RTAC.pcap &".format(new_dir, run))
         time.sleep(0.1)
-        hosts[1].cmd("bash -c '/home/mininet/substation_arch_test/goose_CHE_203_generic_Scenario2/goose_CHE_203_351_2_Scenario2 351_2-eth0' &")
+    
+        hosts[4].cmd("tcpdump -i 487B_2-eth0 -nnq -w ./{0}/exp_{1}_487B_2.pcap &".format(new_dir, run))
+        time.sleep(0.1)
+        
+        
+        hosts[1].cmd("tcpdump -i 351_2-eth0 -nnq -w ./{0}/exp_{1}_351_2.pcap &".format(new_dir, run))
+        time.sleep(0.1)
+        
 
-        hosts[7].cmd("tcpdump -i 651R_2-eth0 -w ./{0}/exp_{1}_651R_2.pcap &".format(new_dir, run))
+        hosts[7].cmd("tcpdump -i 651R_2-eth0 -nnq -w ./{0}/exp_{1}_651R_2.pcap &".format(new_dir, run))
         time.sleep(0.1)
+
+        hosts[8].cmd("bash -c '/home/mininet/substation_arch_test/goose_CHE_203_generic_Scenario2/goose_CHE_203_787_2_Scenario2 787_2-eth0' &")        
+        hosts[3].cmd("bash -c '/home/mininet/substation_arch_test/goose_CHE_203_generic_Scenario2/goose_CHE_203_451_2_Scenario2 451_2-eth0' &")
+        hosts[10].cmd("bash -c '/home/mininet/substation_arch_test/goose_CHE_203_generic_Scenario2/goose_CHE_203_RTAC_Scenario2 RTAC-eth0' &")
+        hosts[4].cmd("bash -c '/home/mininet/substation_arch_test/goose_CHE_203_generic_Scenario2/goose_CHE_203_487B_2_Scenario2 487B_2-eth0' &")
+        hosts[1].cmd("bash -c '/home/mininet/substation_arch_test/goose_CHE_203_generic_Scenario2/goose_CHE_203_351_2_Scenario2 351_2-eth0' &")
         hosts[7].cmd("bash -c '/home/mininet/substation_arch_test/goose_CHE_203_generic_Scenario2/goose_CHE_203_651R_2_Scenario2 651R_2-eth0' &")
         
         # print(hosts)
         # print(hosts[7].cmd("ip a"))
 
-    # CLI(net)
+    CLI(net)
 
-    time.sleep(60)
+    # time.sleep(60)
 
     net.stop()
     return

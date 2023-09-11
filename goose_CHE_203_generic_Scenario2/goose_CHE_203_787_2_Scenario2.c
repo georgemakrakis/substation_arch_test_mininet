@@ -153,7 +153,7 @@ void *threadedPublisher(void *input)
 
     int i = 0;
     // Intervals in ms
-    int min_interval = 10;
+    int min_interval = 30;
     int publish_interval = min_interval;
     int max_interval = 100;
 

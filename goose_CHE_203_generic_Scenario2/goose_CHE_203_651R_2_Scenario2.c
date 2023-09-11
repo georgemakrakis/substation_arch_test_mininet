@@ -150,7 +150,7 @@ void *threadedPublisher(void *input)
 
     int i = 0;
     // Intervals in ms
-    int min_interval = 4;
+    int min_interval = 30;
     int publish_interval = min_interval;
     int max_interval = 100;
 
@@ -295,6 +295,8 @@ main(int argc, char **argv)
     pub_struct->publisher_2 = publisher_2;
     pub_struct->publisher_3 = publisher_3;
     pub_struct->myid = tid_pub;
+
+    sleep(1);
     
     // TODO: Can we launch those 3 publishers as separate threads
     // if there are no problems with shared data?

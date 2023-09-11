@@ -11,13 +11,20 @@ from ryu.lib.packet import packet
 from ryu.lib.packet import ethernet
 from ryu.lib.packet import ether_types
 
+from ryu.app.wsgi import ControllerBase, WSGIApplication, route
+from webob import Response
+
 from ryu import cfg
+
+from ryu.lib import snortlib
+
+learningController_app_instance_name = 'learningController_app'
 
 OFP_REPLY_TIMER = 1.0  # sec
 
 class learning_controller(app_manager.RyuApp):
     OFP_VERSIONS = [ofproto_v1_3.OFP_VERSION]
-    _CONTEXTS = {}
+    _CONTEXTS = {'wsgi': WSGIApplication, 'snortlib': snortlib.SnortLib}
 
     block_comms = {}
 
@@ -28,8 +35,29 @@ class learning_controller(app_manager.RyuApp):
 
         CONF = cfg.CONF
         CONF.register_opts([
+            cfg.IntOpt('monitor', default=0, help = ('Enable monitor')),
+            cfg.IntOpt('period', default=10, help = ('Period of monitoring')),
+            cfg.IntOpt('snort', default=0, help = ('Enabling snort communication')),
             cfg.IntOpt('scenario', default=1, help = ('Choosing scenario'))
         ])
+
+        wsgi = kwargs['wsgi']
+        self.datapath = None
+        self.flows_stats = []
+        self.group_stats = []
+        wsgi.register(LearningsController,
+                      {learningController_app_instance_name: self})
+
+        if (CONF.snort and CONF.snort == 1):
+
+            self.snort = kwargs['snortlib']
+            # This is not needed yet but we can add it later as the IDS Port 20 for the below flow rules
+            # self.snort_port = 3
+
+            socket_config = {'unixsock': False}
+
+            self.snort.set_config(socket_config)
+            self.snort.start_socket_server()
 
         if (CONF.scenario):
             self.scenario = CONF.scenario
@@ -59,6 +87,15 @@ class learning_controller(app_manager.RyuApp):
 
         # Table 0 is the ACL and Table 1 the forwarding of packets using MAC learning
         self.add_flow(datapath=datapath, priority=0, command=command, match=match, inst=inst, waiters=waiters, log_action="controller_handling", table_id=0)
+
+        # Group Table 50 for IDS Forwarding
+
+        # actions1 = [parser.OFPActionOutput(20)]
+        # buckets = [parser.OFPBucket(actions=actions1)]
+        # req = parser.OFPGroupMod(datapath=datapath, command=ofproto.OFPGC_ADD,
+        #                          type_=ofproto.OFPGT_ALL, group_id=50, 
+        #                          buckets=buckets)
+        # datapath.send_msg(req)
 
     def add_flow(self, datapath, priority, command, match, inst, waiters, log_action, table_id=0, timeout=OFP_REPLY_TIMER, buffer_id=None):
         ofproto = datapath.ofproto
@@ -104,9 +141,7 @@ class learning_controller(app_manager.RyuApp):
         datapath = msg.datapath
         ofproto = datapath.ofproto
         parser = datapath.ofproto_parser
-
-        dpid = datapath.id # Parse the Datapath ID to identify OpenFlow switches.
-        self.mac_to_port.setdefault(dpid, {})
+        in_port = msg.match['in_port']
 
         # Analyze the received packets using the packet library.
         pkt = packet.Packet(msg.data)
@@ -126,8 +161,6 @@ class learning_controller(app_manager.RyuApp):
         # IP_dst = IP_pkt.dst
         # IP_src = IP_pkt.src
 
-        in_port = msg.match['in_port']
-
         # self.logger.info("packet in switch %s SRC: %s DST: %s IN_PORT: %s", dpid, src, dst, in_port)
         
        
@@ -139,9 +172,8 @@ class learning_controller(app_manager.RyuApp):
         else:
             out_port = ofproto.OFPP_FLOOD
 
-        # NOTE: Port 20 is the IDS
-        # actions = [parser.OFPActionOutput(out_port), parser.OFPActionOutput(20)]
         actions = [parser.OFPActionOutput(out_port)]
+        # actions = [parser.OFPActionOutput(out_port), parser.OFPActionGroup(group_id=50)]
         inst = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS,
                                              actions)]
         command=ofproto.OFPFC_ADD
@@ -194,9 +226,15 @@ class learning_controller(app_manager.RyuApp):
             "01:0c:cd:01:00:04" : [2],
 
             # For 451 --> 487B
-            "01:0c:cd:01:00:07" : [5],
+            "01:0c:cd:01:00:09" : [5],
             # For 487B --> 351_2
-            "01:0c:cd:01:00:05" : [3],
+            "01:0c:cd:01:00:10" : [3],
+
+            # Allow also these two even if they do not play any role
+            # 451
+            "01:0c:cd:01:00:07" : [10],
+            # 787
+            "01:0c:cd:01:00:08" : [10]
             
             #("01:0c:cd:01:00:01", [10, 5])
             #("01:0c:cd:01:00:01", 16)
@@ -221,15 +259,18 @@ class learning_controller(app_manager.RyuApp):
         if in_goose_list:
             match = parser.OFPMatch(eth_src=src, eth_dst=dst)
             actions = []
+            # actions = [parser.OFPActionGroup(group_id=50)]
 
             for port in in_goose_list:
                 actions.append(parser.OFPActionOutput(port))
 
             inst = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS,
                                              actions)]
-            
+            # if dst == "01:0c:cd:01:00:09":
+            #     self.add_flow(datapath=datapath, priority=200, command=command, match=match, inst=inst, waiters=waiters, log_action="packet_in", table_id=0, timeout=0)
+            # else:
             self.add_flow(datapath=datapath, priority=100, command=command, match=match, inst=inst, waiters=waiters, log_action="packet_in", table_id=0, timeout=0)
-        
+
 
             data = None
             if msg.buffer_id == ofproto.OFP_NO_BUFFER:
@@ -269,3 +310,9 @@ class learning_controller(app_manager.RyuApp):
             datapath.send_msg(out)
 
             return
+        
+class LearningsController(ControllerBase):
+
+    def __init__(self, req, link, data, **config):
+        super(LearningsController, self).__init__(req, link, data, **config)
+        self.learning_controller_app = data[learningController_app_instance_name]

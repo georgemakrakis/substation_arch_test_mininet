@@ -199,7 +199,7 @@ void *threadedPublisher(void *input)
 
     int i = 0;
     // Intervals in ms
-    int min_interval = 10;
+    int min_interval = 30;
     int publish_interval = min_interval;
     int max_interval = 100;
 
@@ -220,9 +220,9 @@ void *threadedPublisher(void *input)
 
         if (i == 0 && publish_interval < max_interval) {
                 publish_interval = min_interval;
-                GoosePublisher_setTimeAllowedToLive(publisher, 2 * max_interval);
-                GoosePublisher_setTimeAllowedToLive(publisher_2, 2 * max_interval);
-                GoosePublisher_setTimeAllowedToLive(publisher_3, 2 * max_interval);
+                GoosePublisher_setTimeAllowedToLive(publisher, 3 * max_interval);
+                GoosePublisher_setTimeAllowedToLive(publisher_2, 3 * max_interval);
+                GoosePublisher_setTimeAllowedToLive(publisher_3, 3 * max_interval);
         }
         else if (i != 0 && publish_interval < max_interval){
             publish_interval = 2 * publish_interval;
@@ -499,6 +499,8 @@ main(int argc, char **argv)
     pub_struct->publisher_2 = publisher_2;
     pub_struct->publisher_3 = publisher_3;
     pub_struct->myid = tid_pub;
+
+    sleep(3);
     
     // TODO: Can we launch those 3 publishers as separate threads
     // if there are no problems with shared data?

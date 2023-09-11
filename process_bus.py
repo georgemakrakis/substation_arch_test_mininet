@@ -479,8 +479,7 @@ class process_bus(app_manager.RyuApp):
         else:
             out_port = ofproto.OFPP_FLOOD
 
-        # NOTE: Port 20 is the IDS
-        # actions = [parser.OFPActionOutput(out_port), parser.OFPActionOutput(20)]
+
         actions = [parser.OFPActionOutput(out_port), parser.OFPActionGroup(group_id=50)]
         inst = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS,
                                              actions)]
@@ -534,9 +533,15 @@ class process_bus(app_manager.RyuApp):
             "01:0c:cd:01:00:04" : [2],
 
             # For 451 --> 487B
-            "01:0c:cd:01:00:07" : [5],
+            "01:0c:cd:01:00:09" : [5],
             # For 487B --> 351_2
-            "01:0c:cd:01:00:05" : [3],
+            "01:0c:cd:01:00:10" : [3],
+
+            # Allow also these two even if they do not play any role
+            # 451
+            "01:0c:cd:01:00:07" : [10],
+            # 787
+            "01:0c:cd:01:00:08" : [10]
             
             #("01:0c:cd:01:00:01", [10, 5])
             #("01:0c:cd:01:00:01", 16)
