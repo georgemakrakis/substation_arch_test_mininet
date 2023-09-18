@@ -48,17 +48,6 @@ class learning_controller(app_manager.RyuApp):
         wsgi.register(LearningsController,
                       {learningController_app_instance_name: self})
 
-        if (CONF.snort and CONF.snort == 1):
-
-            self.snort = kwargs['snortlib']
-            # This is not needed yet but we can add it later as the IDS Port 20 for the below flow rules
-            # self.snort_port = 3
-
-            socket_config = {'unixsock': False}
-
-            self.snort.set_config(socket_config)
-            self.snort.start_socket_server()
-
         if (CONF.scenario):
             self.scenario = CONF.scenario
 
@@ -85,17 +74,7 @@ class learning_controller(app_manager.RyuApp):
         waiters = {}
         command = ofproto.OFPFC_ADD
 
-        # Table 0 is the ACL and Table 1 the forwarding of packets using MAC learning
         self.add_flow(datapath=datapath, priority=0, command=command, match=match, inst=inst, waiters=waiters, log_action="controller_handling", table_id=0)
-
-        # Group Table 50 for IDS Forwarding
-
-        # actions1 = [parser.OFPActionOutput(20)]
-        # buckets = [parser.OFPBucket(actions=actions1)]
-        # req = parser.OFPGroupMod(datapath=datapath, command=ofproto.OFPGC_ADD,
-        #                          type_=ofproto.OFPGT_ALL, group_id=50, 
-        #                          buckets=buckets)
-        # datapath.send_msg(req)
 
     def add_flow(self, datapath, priority, command, match, inst, waiters, log_action, table_id=0, timeout=OFP_REPLY_TIMER, buffer_id=None):
         ofproto = datapath.ofproto
@@ -157,13 +136,8 @@ class learning_controller(app_manager.RyuApp):
         dpid = datapath.id
         self.mac_to_port.setdefault(dpid, {})
 
-        # IP_pkt = pkt.get_protocol(ipv4.ipv4)
-        # IP_dst = IP_pkt.dst
-        # IP_src = IP_pkt.src
-
         # self.logger.info("packet in switch %s SRC: %s DST: %s IN_PORT: %s", dpid, src, dst, in_port)
         
-       
 
         self.mac_to_port[dpid][src] = in_port
 
@@ -204,9 +178,6 @@ class learning_controller(app_manager.RyuApp):
             "01:0c:cd:01:00:07" : [10],
             # 787
             "01:0c:cd:01:00:08" : [10]
-            
-            #("01:0c:cd:01:00:01", [10, 5])
-            #("01:0c:cd:01:00:01", 16)
         }
 
         goose_list_scenario_2 = {
@@ -236,11 +207,7 @@ class learning_controller(app_manager.RyuApp):
             # 787
             "01:0c:cd:01:00:08" : [10]
             
-            #("01:0c:cd:01:00:01", [10, 5])
-            #("01:0c:cd:01:00:01", 16)
         }
-
-        #in_goose_list = [tuple for tuple in goose_list if any(dst == i for i in tuple)]
 
         if self.scenario == 1:
             goose_list = goose_list_scenario_1
@@ -251,7 +218,6 @@ class learning_controller(app_manager.RyuApp):
 
         try:
             in_goose_list = goose_list[dst]
-            # print(f"GOOSE packet will go to port: {in_goose_list}")
         except KeyError as err:
             print(f"Key Error for key {err} in goose_list")
             # TODO: Return some sort of error and/or log this action
@@ -259,24 +225,19 @@ class learning_controller(app_manager.RyuApp):
         if in_goose_list:
             match = parser.OFPMatch(eth_src=src, eth_dst=dst)
             actions = []
-            # actions = [parser.OFPActionGroup(group_id=50)]
 
             for port in in_goose_list:
                 actions.append(parser.OFPActionOutput(port))
 
             inst = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS,
                                              actions)]
-            # if dst == "01:0c:cd:01:00:09":
-            #     self.add_flow(datapath=datapath, priority=200, command=command, match=match, inst=inst, waiters=waiters, log_action="packet_in", table_id=0, timeout=0)
-            # else:
+        
             self.add_flow(datapath=datapath, priority=100, command=command, match=match, inst=inst, waiters=waiters, log_action="packet_in", table_id=0, timeout=0)
 
 
             data = None
             if msg.buffer_id == ofproto.OFP_NO_BUFFER:
-                # print("Setting DATA!!!!")
                 data = msg.data
-                # print(data)
 
             out = parser.OFPPacketOut(datapath=datapath, buffer_id=msg.buffer_id,
                                   in_port=in_port, actions=actions, data=data)

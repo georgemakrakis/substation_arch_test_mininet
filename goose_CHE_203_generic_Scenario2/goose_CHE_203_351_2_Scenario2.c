@@ -157,7 +157,6 @@ void *threadedPublisher(void *input)
     int publish_interval = min_interval;
     int max_interval = 100;
 
-    // NOTE: Used as a simple condition to increase the StNum
     int max_i = 30;
 
     int step_b_done = 0;
@@ -192,7 +191,6 @@ void *threadedPublisher(void *input)
 
             for (int i=0; i<values_size; i++){
 
-                // LinkedList prev_Val = LinkedList_get(dataSetValuesToRTAC, i);
                 LinkedList prev_Val = LinkedList_get(dataSetValuesToRTAC, 0);
 
                 MmsValue* value = (MmsValue*) LinkedList_getData(prev_Val);
@@ -208,9 +206,6 @@ void *threadedPublisher(void *input)
 
             i = 0;
         }
-
-        // TODO: Need to check for the received values from 451_2 
-        // and then change those for 351_2
 
         Thread_sleep(publish_interval);
 
@@ -312,15 +307,11 @@ main(int argc, char **argv)
 
     sleep(1);
     
-    // TODO: Can we launch those 3 publishers as separate threads
-    // if there are no problems with shared data?
     pthread_create(&tid_pub, NULL, threadedPublisher, (void *)pub_struct);
 
-    // sleep(1000000);
 
     while(code_runs < 200){
         sleep(1);
-        // printf("CODE RUNS %d \n", code_runs);
     }
 
     GoosePublisher_destroy(publisher);

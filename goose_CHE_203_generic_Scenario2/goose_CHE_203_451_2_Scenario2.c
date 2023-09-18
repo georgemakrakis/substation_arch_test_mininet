@@ -60,7 +60,6 @@ sigint_handler(int signalId)
 void printLinkedList(LinkedList list){
 
     LinkedList valueElement = LinkedList_getNext(list);
-    // LinkedList valueElement = LinkedList_get(list, 2);
     char buf[1024];
     while (valueElement) {
 
@@ -207,9 +206,6 @@ void *threadedPublisher(void *input)
             i = 0;
         }
 
-        // TODO: Need to check for the received values from 451_2 
-        // and then change those for 351_2
-
         Thread_sleep(publish_interval);
 
         code_runs++;
@@ -309,15 +305,13 @@ main(int argc, char **argv)
     pub_struct->publisher_3 = publisher_3;
     pub_struct->myid = tid_pub;
     
-    // TODO: Can we launch those 3 publishers as separate threads
-    // if there are no problems with shared data?
+
     pthread_create(&tid_pub, NULL, threadedPublisher, (void *)pub_struct);
 
     // sleep(1000000);
 
     while(code_runs < 200){
         sleep(1);
-        // printf("CODE RUNS %d \n", code_runs);
     }
 
     GoosePublisher_destroy(publisher);

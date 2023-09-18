@@ -64,7 +64,6 @@ int code_runs = 0;
 void printLinkedList(LinkedList list){
 
     LinkedList valueElement = LinkedList_getNext(list);
-    // LinkedList valueElement = LinkedList_get(list, 2);
     char buf[1024];
     while (valueElement) {
 
@@ -191,8 +190,6 @@ gooseListener(GooseSubscriber subscriber, void* parameter)
 
 
                 // Update the values of dataSetValuesReceivedFrom651R_2
-                // TODO: Can that be done outside the loop with direct assignment somehow?
-                // TODO: Shall we also move the if statement somewhere outside the loop?
                 if (strcmp(GooseSubscriber_getGoCbRef(subscriber), "SEL_651R_2/LLN0$GO$GooseDSet1") == 0){
                         
                         LinkedList prev_Val = LinkedList_get(dataSetValuesReceivedFrom651R_2, i);
@@ -236,25 +233,6 @@ gooseListener(GooseSubscriber subscriber, void* parameter)
             LinkedList_add(dataSetValuesTo451_2, MmsValue_newIntegerFromInt32(1));
         }
     }
-
-    // // Adds time logging for the "packet"
-    // char buffered_time[26];
-    // int millisec;
-    // struct tm* tm_info;
-    // struct timeval tv;
-
-    // gettimeofday(&tv, NULL);
-
-    // millisec = lrint(tv.tv_usec/1000.0); // Round to nearest millisec
-    // if (millisec>=1000) { // Allow for rounding up to nearest second
-    //     millisec -=1000;
-    //     tv.tv_sec++;
-    // }
-
-    // tm_info = localtime(&tv.tv_sec);
-
-    // strftime(buffered_time, 26, "%Y:%m:%d %H:%M:%S", tm_info);
-    // printf("At %s.%03d\n", buffered_time, millisec);
 }
 
 
@@ -298,18 +276,16 @@ void *threadedPublisher(void *input)
     GoosePublisher publisher = ((struct args_pub*)input)->publisher;
     GoosePublisher publisher_2 = ((struct args_pub*)input)->publisher_2;
     GoosePublisher publisher_3 = ((struct args_pub*)input)->publisher_3;
-    
-    // TODO: The below should be adjusted for each device
-    // based on the collected information.
 
     int i = 0;
+
     // Intervals in ms
-    // int min_interval = 10;
     int min_interval = 4;
     // int min_interval = 500;
     int publish_interval = 0;
     // int max_interval = 100;
     int max_interval = 1000;
+    
     if (strcmp(device_name, "651R_2") == 0) {
         // The min_interval is for testing here
         min_interval = 30;
@@ -331,9 +307,6 @@ void *threadedPublisher(void *input)
         max_interval = 100;
     }
 
-    // int max_interval = 5000;
-    
-    // NOTE: Used as a simple condition to increase the StNum
     int max_i = 10;
     int max_i_2 = 30;
 
@@ -420,31 +393,6 @@ void *threadedPublisher(void *input)
                 sprintf(timestamp_msg, "%"PRIdMAX".%06ld, %s\n", (intmax_t)s, ms, goID);
                 fileLog(timestamp_msg, "send");
             }
-            
-        
-
-            
-
-            // Thread_sleep(publish_interval);
-
-            // First option 
-            // if( i <= 3) {
-            //     interval = 2 * interval;
-            // }
-            // else {
-            //     interval = max_interval;
-            // }
-
-            // Second option
-            // if( i == 0) {
-            //     publish_interval = min_interval;
-            // }
-            // else if( i < 3) {
-            //     publish_interval = 2 * publish_interval;
-            // }
-            // else {
-            //     publish_interval = max_interval;
-            // }
 
             // The different Transmit Interval algorithms for each device.
             if (strcmp(device_name, "651R_2") == 0) {
@@ -478,7 +426,6 @@ void *threadedPublisher(void *input)
                     else {
                         GoosePublisher_setTimeAllowedToLive(publisher, 3 * publish_interval);
                     }
-                    // GoosePublisher_setTimeAllowedToLive(publisher, 3 * publish_interval);
                 }
                 else if (i != 0 && publish_interval >= max_interval){
                     publish_interval = max_interval;
@@ -500,7 +447,6 @@ void *threadedPublisher(void *input)
                     else {
                         GoosePublisher_setTimeAllowedToLive(publisher, 3 * publish_interval);
                     }
-                    // GoosePublisher_setTimeAllowedToLive(publisher, 3 * publish_interval);
                 }
                 else if (i != 0 && publish_interval >= max_interval){
                     publish_interval = max_interval;
@@ -524,17 +470,13 @@ void *threadedPublisher(void *input)
                 }
             }
             
-            // .. then us a condition to change something to start from the
+            // .. then use a condition to change something to start from the
             // beginning
 
             // This could be step a) 
             if (strcmp(device_name, "651R_2") == 0 && i == max_i && step_a_done == 0) {
                 printf("=================== STEP A)  ===================\n");
                 LinkedList prev_Val = LinkedList_get(dataSetValues, 0);
-
-                // LinkedList_remove(dataSetValues, prev_Val);
-                // LinkedList_add(dataSetValues, MmsValue_newIntegerFromInt32(1));
-               
 
                 MmsValue* value = (MmsValue*) LinkedList_getData(prev_Val);
 
@@ -549,9 +491,6 @@ void *threadedPublisher(void *input)
                 // i = 0;
             }
 
-            // This could be step e)
-            // TODO: That will be if step e) happens from RTAC --> 651-2?
-            // Combined all the events in the single "if block".
             if (strcmp(device_name, "RTAC") == 0 && i == max_i_2 && step_e_done == 0) {
 
                 printf("=================== ISSUE FIXED, RESTORING ( STEP E) ) ===================\n");
@@ -594,8 +533,6 @@ void *threadedPublisher(void *input)
                 publish_interval = 0;
 
                 step_e_done = 1;
-                // i = 0;
-                // return 0;
             }
 
             if(updated == 1){
@@ -606,16 +543,10 @@ void *threadedPublisher(void *input)
 
             i++;
 
-            // NOTE: Not sure if that is really needed.
             if (step_e_done == 1){
                 i = 0;
                 step_e_done = 0;
             }
-
-            // if (step_a_done == 1){
-            //     i = 0;
-                // step_a_done = 0;
-            // }
 
             Thread_sleep(publish_interval);
             
@@ -655,7 +586,6 @@ main(int argc, char **argv)
     GoosePublisher publisher_3;
 
     char *interface;
-    // char *device_name;
 
     if (argc > 1) {
         interface = argv[1];
@@ -665,7 +595,6 @@ main(int argc, char **argv)
         GooseReceiver_setInterfaceId(receiver, interface);
     }
     else {
-        // printf("Using interface eth0\n");
         printf("Not enough parameters, exiting...\n");
         return 1;
     }
@@ -693,8 +622,7 @@ main(int argc, char **argv)
     {
         printf("GOOSE subscriber RTAC configuration initiated...\n");
         
-        // This should be sub for data from 651R_2
-        // TODO: We need for the rest of them as well.
+
         subscriber = GooseSubscriber_create("SEL_651R_2/LLN0$GO$GooseDSet1", NULL);
         uint8_t dstMac[6] = {0x01,0x0c,0xcd,0x01,0x00,0x02};
         GooseSubscriber_setDstMac(subscriber, dstMac);
@@ -704,10 +632,6 @@ main(int argc, char **argv)
     {
         printf("GOOSE subscriber 651R_2 configuration initiated...\n");
 
-        // This should be sub for data from RTAC
-        // TODO: We need for the rest of them as well.
-
-        // TODO: Chahnge the below from TEST to something else.
         subscriber = GooseSubscriber_create("SEL_RTAC/LLN0$GO$GooseDSet1", NULL);
         uint8_t dstMac[6] = {0x01,0x0c,0xcd,0x01,0x00,0x01};
         GooseSubscriber_setDstMac(subscriber, dstMac);
@@ -717,7 +641,6 @@ main(int argc, char **argv)
     {
         printf("GOOSE subscriber 787_2 configuration initiated...\n");
 
-        // TODO: After testing rename this to just "subscriber"
         subscriber = GooseSubscriber_create("SEL_RTAC/LLN0$GO$GooseDSet2", NULL);
         uint8_t dstMac[6] = {0x01,0x0c,0xcd,0x01,0x00,0x03};
         GooseSubscriber_setDstMac(subscriber, dstMac);
@@ -727,7 +650,6 @@ main(int argc, char **argv)
     {
         printf("GOOSE 451_2 configuration initiated...\n");
 
-        // TODO: After testing rename this to just "subscriber"
         subscriber = GooseSubscriber_create("SEL_RTAC/LLN0$GO$GooseDSet3", NULL);
         uint8_t dstMac[6] = {0x01,0x0c,0xcd,0x01,0x00,0x04};
         GooseSubscriber_setDstMac(subscriber, dstMac);
@@ -752,22 +674,9 @@ main(int argc, char **argv)
     if (strcmp(device_name, "RTAC") == 0) 
     {
         printf("GOOSE publisher RTAC configuration initiated...\n");
-        // TODO: 
-        // Should have the integer for the True/False or Open/Close
-        // and another interger for Trip/NoTrip
-        // gooseCommParameters should be here as well.
-        // There should be multiple ones based on the comm paths of
-        // the devices
 
         // Breaker status (for device No ?) 0/1 or Open/Close.
         LinkedList_add(dataSetValues, MmsValue_newIntegerFromInt32(0));
-        // LinkedList_add(dataSetValues, MmsValue_newIntegerFromInt32(0));
-        // LinkedList_add(dataSetValues, MmsValue_newBoolean(true));
-
-        // Trip command (for device No ?) 0/1 NoTrip/Trip.
-        // LinkedList_add(dataSetValues, MmsValue_newIntegerFromInt32(0));
-        // NOTE: Disable for now might be enabled later.
-        // LinkedList_add(dataSetValues, MmsValue_newBoolean(false));
 
         // The initial values of the retained dataSetValuesReceivedFrom651R_2
         // Breaker status (for device No ?) 0/1 or Open/Close.
@@ -827,12 +736,6 @@ main(int argc, char **argv)
 
         // Breaker status (for device No ?) 0/1 or Open/Close.
         LinkedList_add(dataSetValues, MmsValue_newIntegerFromInt32(0));
-        // LinkedList_add(dataSetValues, MmsValue_newBoolean(true));
-
-        // Trip command (for device No ?) Trip/NoTrip.
-        // LinkedList_add(dataSetValues, MmsValue_newIntegerFromInt32(0));
-         // NOTE: Disable for now might be enabled later.
-        // LinkedList_add(dataSetValues, MmsValue_newBoolean(false));
 
         gooseCommParameters.appId = 1002;
         gooseCommParameters.dstAddress[0] = 0x01;
@@ -977,11 +880,7 @@ main(int argc, char **argv)
 
 
     pthread_create(&tid_rec, NULL, threadedReceiver, (void *)rec_struct);
-    
-    // if (strcmp(device_name, "651R_2") || strcmp(device_name, "787_2") || strcmp(device_name, "451_2")){
-    //     // sleep(1);
-    //     sleep(2);
-    // }
+
 
     if (strcmp(device_name, "651R_2")){
         sleep(1);
@@ -1001,11 +900,8 @@ main(int argc, char **argv)
 
     pthread_create(&tid_pub, NULL, threadedPublisher, (void *)pub_struct);
 
-    // sleep(1000000);
-
     while(code_runs < 200){
         sleep(1);
-        // printf("CODE RUNS %d \n", code_runs);
     }
 
 

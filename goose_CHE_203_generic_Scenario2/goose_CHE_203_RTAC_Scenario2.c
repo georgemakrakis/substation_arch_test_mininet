@@ -78,7 +78,6 @@ sigint_handler(int signalId)
 void printLinkedList(LinkedList list){
 
     LinkedList valueElement = LinkedList_getNext(list);
-    // LinkedList valueElement = LinkedList_get(list, 2);
     char buf[1024];
     while (valueElement) {
 
@@ -114,7 +113,6 @@ gooseListener(GooseSubscriber subscriber, void* parameter)
     printf("  allData: %s\n", buffer);
 
     if (MmsValue_getType(values) == MMS_ARRAY) {
-        // printf("received binary control command: ");
         printf("received MMS ARRAY\n");
 
         int values_size = MmsValue_getArraySize(values);
@@ -203,7 +201,6 @@ void *threadedPublisher(void *input)
     int publish_interval = min_interval;
     int max_interval = 100;
 
-    // NOTE: Used as a simple condition to increase the StNum
     int max_i_2 = 50;
 
     int step_e_done = 0;
@@ -237,7 +234,6 @@ void *threadedPublisher(void *input)
                 GoosePublisher_setTimeAllowedToLive(publisher_2, 3 * publish_interval);
                 GoosePublisher_setTimeAllowedToLive(publisher_3, 3 * publish_interval);
             }
-            // GoosePublisher_setTimeAllowedToLive(publisher, 3 * publish_interval);
         }
         else if (i != 0 && publish_interval >= max_interval){
             publish_interval = max_interval;
@@ -311,8 +307,6 @@ void *threadedPublisher(void *input)
             GoosePublisher_increaseStNum(publisher_2);
             GoosePublisher_increaseStNum(publisher_3);
 
-            // TODO: Maybe we need to send data to 787 here as well.
-
             updated_651R_2 = 0;
             updated_487B_2 = 0;
             updated_351_2 = 0;
@@ -346,7 +340,6 @@ main(int argc, char **argv)
         GooseReceiver_setInterfaceId(receiver, interface);
     }
     else {
-        // printf("Using interface eth0\n");
         printf("Not enough parameters, exiting...\n");
         return 1;
     }
@@ -405,10 +398,6 @@ main(int argc, char **argv)
     // Breaker status (for device No ?) 0/1 or Open/Close.
     // Should be CLOSED initially
     LinkedList_add(dataSetValuesTo651R_2, MmsValue_newIntegerFromInt32(1));
-    // TODO: Below should be changed if we have 3-phase breaker
-    
-    // LinkedList_add(dataSetValuesTo651R_2, MmsValue_newIntegerFromInt32(0));
-    // LinkedList_add(dataSetValuesTo651R_2, MmsValue_newBoolean(true));
 
     // The initial values of the retained dataSetValuesReceivedFrom651R_2
     // Breaker status (for device No ?) 0/1 or Open/Close.
@@ -426,14 +415,7 @@ main(int argc, char **argv)
     LinkedList_add(dataSetValuesTo787,  MmsValue_newIntegerFromInt32(1));
     // TODO: Below should be changed if we have 3-phase breaker
 
-    // TODO: Can we write those asisgnment to that dstAddress array in a better way?
     gooseCommParameters_2.appId = 1003;
-    // gooseCommParameters_2.dstAddress[0] = 0x01;
-    // gooseCommParameters_2.dstAddress[1] = 0x0c;
-    // gooseCommParameters_2.dstAddress[2] = 0xcd;
-    // gooseCommParameters_2.dstAddress[3] = 0x01;
-    // gooseCommParameters_2.dstAddress[4] = 0x00;
-    // gooseCommParameters_2.dstAddress[5] = 0x03;
     memcpy(gooseCommParameters_2.dstAddress, (unsigned char[]) {0x01,0x0c,0xcd,0x01,0x00,0x03 }, 
         sizeof gooseCommParameters_2.dstAddress);
     gooseCommParameters_2.vlanId = 0;
@@ -502,15 +484,11 @@ main(int argc, char **argv)
 
     sleep(3);
     
-    // TODO: Can we launch those 3 publishers as separate threads
-    // if there are no problems with shared data?
     pthread_create(&tid_pub, NULL, threadedPublisher, (void *)pub_struct);
 
-    // sleep(1000000);
 
     while(code_runs < 200){
         sleep(1);
-        // printf("CODE RUNS %d \n", code_runs);
     }
 
     GoosePublisher_destroy(publisher);

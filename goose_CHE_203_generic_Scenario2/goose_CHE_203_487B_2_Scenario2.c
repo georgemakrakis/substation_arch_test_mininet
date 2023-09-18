@@ -60,7 +60,6 @@ sigint_handler(int signalId)
 void printLinkedList(LinkedList list){
 
     LinkedList valueElement = LinkedList_getNext(list);
-    // LinkedList valueElement = LinkedList_get(list, 2);
     char buf[1024];
     while (valueElement) {
 
@@ -96,8 +95,7 @@ gooseListener(GooseSubscriber subscriber, void* parameter)
     // printf("  allData: %s\n", buffer);
 
     if (MmsValue_getType(values) == MMS_ARRAY) {
-        // printf("received binary control command: ");
-        // printf("received MMS ARRAY\n");
+
 
         int values_size = MmsValue_getArraySize(values);
 
@@ -158,8 +156,7 @@ void *threadedPublisher(void *input)
     int publish_interval = min_interval;
     int max_interval = 100;
 
-    // NOTE: Used as a simple condition to increase the StNum
-    int max_i = 32;
+    int max_i = 30;
 
     int step_b_done = 0;
 
@@ -170,9 +167,6 @@ void *threadedPublisher(void *input)
             printf("Error sending message!\n");
         }
         printf("Publishing...\n");
-
-        // TODO: Each publisher should have different i and interval variabels
-        // cause now a change in one affects all of them.
 
        if( i == 0 || i == 1) {
             GoosePublisher_setTimeAllowedToLive(publisher, 3 * min_interval);
@@ -217,9 +211,6 @@ void *threadedPublisher(void *input)
             i = 0;
         }
 
-        // TODO: Need to check for the received values from 451_2 
-        // and then change those for 351_2
-
         if (updated_451_2 == 1) {
             
             LinkedList prev_Val = LinkedList_get(dataSetValuesTo351_2, 0);
@@ -229,8 +220,7 @@ void *threadedPublisher(void *input)
             LinkedList_remove(dataSetValuesTo351_2, value);
             LinkedList_add(dataSetValuesTo351_2, MmsValue_newIntegerFromInt32(1));
 
-            // NOTE: This might not be entirely correct since the value does change
-            // (or we do not check if it does)
+        
             GoosePublisher_increaseStNum(publisher_2);
             publish_interval = min_interval;
             
@@ -263,7 +253,6 @@ main(int argc, char **argv)
         GooseReceiver_setInterfaceId(receiver, interface);
     }
     else {
-        // printf("Using interface eth0\n");
         printf("Not enough parameters, exiting...\n");
         return 1;
     }
@@ -359,17 +348,14 @@ main(int argc, char **argv)
     pub_struct->publisher_3 = publisher_3;
     pub_struct->myid = tid_pub;
 
-    sleep(1);
+    sleep(3);
     
-    // TODO: Can we launch those 3 publishers as separate threads
-    // if there are no problems with shared data?
+    
     pthread_create(&tid_pub, NULL, threadedPublisher, (void *)pub_struct);
 
-    // sleep(1000000);
 
     while(code_runs < 200){
         sleep(1);
-        // printf("CODE RUNS %d \n", code_runs);
     }
 
     GoosePublisher_destroy(publisher);

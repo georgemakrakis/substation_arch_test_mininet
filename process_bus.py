@@ -365,24 +365,6 @@ class process_bus(app_manager.RyuApp):
 
             self.flow_log(origin="default_flows", flow_json=mod.to_jsondict())
 
-            # NOTE: This is not needed since each device will decide where it talks based on the above
-            # Also we might want to prevent comms to one direction only (e.g. 451_1 --> 351_1 but NOT 451_1 <-- 351_1)
-            # Block the other side as well
-            # match = parser.OFPMatch(
-            #     eth_type = 0x0800,
-            #     ipv4_src=(self.block_comms[i][1]),
-            #     ipv4_dst=(self.block_comms[i][0]),
-            #     eth_src=(self.block_comms[i][3]),
-            #     eth_dst=(self.block_comms[i][2])
-            # )
-            # # Empty actions should apply to drop the packet
-            # actions = []
-            # inst = [parser.OFPInstructionActions(ofproto.OFPIT_CLEAR_ACTIONS,
-            #                                     actions)]
-            
-            # mod = parser.OFPFlowMod(datapath=datapath, table_id=0, priority=2, match=match, instructions=inst)
-            # datapath.send_msg(mod)
-
         # Drop any traffic coming from Port 20 which is the IDS
         match_3 = parser.OFPMatch(in_port=20)
         actions_3 = []
@@ -479,7 +461,8 @@ class process_bus(app_manager.RyuApp):
         else:
             out_port = ofproto.OFPP_FLOOD
 
-
+        # NOTE: Port 20 is the IDS
+        # actions = [parser.OFPActionOutput(out_port), parser.OFPActionOutput(20)]
         actions = [parser.OFPActionOutput(out_port), parser.OFPActionGroup(group_id=50)]
         inst = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS,
                                              actions)]

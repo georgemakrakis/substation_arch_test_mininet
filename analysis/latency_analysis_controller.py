@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pds
 
-import csv 
+import csv
 
 ###############################
 # Import SCAPY and ASN1 modules
@@ -105,7 +105,7 @@ def gooseTest(pkt):
 def goose_pdu_decode(encoded_data):
 
     # Debugging on
-    if DEBUG > 2: 
+    if DEBUG > 2:
         from pyasn1 import debug
         debug.setLogger(debug.Debug('all'))
 
@@ -123,15 +123,15 @@ def goose_pdu_decode(encoded_data):
     # This should work, but not sure.
     return decoded_data
 
-# Measure the E2E delay of packets      
+# Measure the E2E delay of packets
 
 total_arr_1 = []
 total_arr_2 = []
 
 def calculate (pcap_1, pcap_2, security=False):
-    global final_lst_01 
-    global final_lst_02 
-    global final_lst_03 
+    global final_lst_01
+    global final_lst_02
+    global final_lst_03
     global final_lst_04
     global final_lst_05
     global final_lst_06
@@ -173,7 +173,61 @@ def calculate (pcap_1, pcap_2, security=False):
     global total_arr_2
 
     for index, packet in enumerate(PcapReader(pcap_1)):
-        
+
+        if gooseTest(packet):
+            # Use SCAPY to parse the Goose header and the Goose PDU header
+            d = GOOSE(packet.load)
+
+            # Grab the Goose PDU for processing
+            gpdu = d[GOOSEPDU].original
+
+            # Use PYASN1 to parse the Goose PDU
+            gd = goose_pdu_decode(gpdu)
+
+            if (gd[5] == 1 and (gd[6] == 0)):
+
+
+                eth = packet[Ether]
+                if eth.dst == "01:0c:cd:01:00:01":
+
+                    lst_1_1.append(packet.time)
+                    total += 1
+                elif eth.dst == "01:0c:cd:01:00:02":
+
+                    lst_2_1.append(packet.time)
+                    total += 1
+                elif eth.dst == "01:0c:cd:01:00:03":
+
+                    lst_3_1.append(packet.time)
+                    total += 1
+                elif eth.dst == "01:0c:cd:01:00:04":
+
+                    lst_4_1.append(packet.time)
+                    total += 1
+                elif eth.dst == "01:0c:cd:01:00:05":
+
+                    lst_5_1.append(packet.time)
+                    total += 1
+                elif eth.dst == "01:0c:cd:01:00:06":
+
+                    lst_6_1.append(packet.time)
+                    total += 1
+
+                elif eth.dst == "01:0c:cd:01:00:09":
+
+                    lst_9_1.append(packet.time)
+                    total += 1
+
+                elif eth.dst == "01:0c:cd:01:00:10":
+
+                    lst_10_1.append(packet.time)
+                    total += 1
+
+
+    total = 0
+
+    for index, packet in enumerate(PcapReader(pcap_2)):
+
         # if gooseTest(packet) and index > 10:
         if gooseTest(packet):
             # Use SCAPY to parse the Goose header and the Goose PDU header
@@ -185,97 +239,41 @@ def calculate (pcap_1, pcap_2, security=False):
             # Use PYASN1 to parse the Goose PDU
             gd = goose_pdu_decode(gpdu)
 
-            # Exlude the first packet that goes to the controlller
             if (gd[5] == 1 and (gd[6] == 0)):
-                continue
 
-            eth = packet[Ether]
-            if eth.dst == "01:0c:cd:01:00:01":
 
-                lst_1_1.append(packet.time)
-                total += 1
-            elif eth.dst == "01:0c:cd:01:00:02":
-                 
-                lst_2_1.append(packet.time)
-                total += 1
-            elif eth.dst == "01:0c:cd:01:00:03":
+                eth = packet[Ether]
+                if eth.dst == "01:0c:cd:01:00:01":
+                    lst_1_2.append(packet.time)
+                    total += 1
+                elif eth.dst == "01:0c:cd:01:00:02":
+                    lst_2_2.append(packet.time)
+                    total += 1
+                elif eth.dst == "01:0c:cd:01:00:03":
+                    lst_3_2.append(packet.time)
+                    total += 1
+                elif eth.dst == "01:0c:cd:01:00:04":
+                    lst_4_2.append(packet.time)
+                    total += 1
 
-                lst_3_1.append(packet.time)
-                total += 1
-            elif eth.dst == "01:0c:cd:01:00:04":
+                elif eth.dst == "01:0c:cd:01:00:05":
 
-                lst_4_1.append(packet.time)
-                total += 1
-            elif eth.dst == "01:0c:cd:01:00:05":
+                    lst_5_2.append(packet.time)
+                    total += 1
+                elif eth.dst == "01:0c:cd:01:00:06":
 
-                lst_5_1.append(packet.time)
-                total += 1
-            elif eth.dst == "01:0c:cd:01:00:06":
+                    lst_6_2.append(packet.time)
+                    total += 1
 
-                lst_6_1.append(packet.time)
-                total += 1
+                elif eth.dst == "01:0c:cd:01:00:09":
 
-            elif eth.dst == "01:0c:cd:01:00:09":
+                    lst_9_2.append(packet.time)
+                    total += 1
 
-                lst_9_1.append(packet.time)
-                total += 1
+                elif eth.dst == "01:0c:cd:01:00:10":
 
-            elif eth.dst == "01:0c:cd:01:00:10":
-
-                lst_10_1.append(packet.time)
-                total += 1
-
-    
-    total = 0
-
-    for index, packet in enumerate(PcapReader(pcap_2)):
-
-        if gooseTest(packet):
-            # Use SCAPY to parse the Goose header and the Goose PDU header
-            d = GOOSE(packet.load)
-
-            # Grab the Goose PDU for processing
-            gpdu = d[GOOSEPDU].original
-
-            # Use PYASN1 to parse the Goose PDU
-            gd = goose_pdu_decode(gpdu)
-
-            # Exlude the first packet that goes to the controlller
-            if (gd[5] == 1 and (gd[6] == 0)):
-                continue
-            
-            eth = packet[Ether]
-            if eth.dst == "01:0c:cd:01:00:01":
-                lst_1_2.append(packet.time)
-                total += 1
-            elif eth.dst == "01:0c:cd:01:00:02":
-                lst_2_2.append(packet.time)
-                total += 1
-            elif eth.dst == "01:0c:cd:01:00:03":
-                lst_3_2.append(packet.time)
-                total += 1
-            elif eth.dst == "01:0c:cd:01:00:04":
-                lst_4_2.append(packet.time)
-                total += 1
-
-            elif eth.dst == "01:0c:cd:01:00:05":
-
-                lst_5_2.append(packet.time)
-                total += 1
-            elif eth.dst == "01:0c:cd:01:00:06":
-
-                lst_6_2.append(packet.time)
-                total += 1
-
-            elif eth.dst == "01:0c:cd:01:00:09":
-
-                lst_9_2.append(packet.time)
-                total += 1
-
-            elif eth.dst == "01:0c:cd:01:00:10":
-
-                lst_10_2.append(packet.time)
-                total += 1
+                    lst_10_2.append(packet.time)
+                    total += 1
 
     for index, ts in enumerate(lst_1_1):
         try:
@@ -289,7 +287,7 @@ def calculate (pcap_1, pcap_2, security=False):
         except IndexError as err:
             continue
 
-    
+
     for index, ts in enumerate(lst_3_1):
         try:
             final_lst_03.append(ts - lst_3_2[index])
@@ -334,11 +332,12 @@ def main(pcap_1="", pcap_2=""):
     scenario = 1
     # scenario = 2
 
-    for j in [0, 2]:
+    # for j in [0, 2]:
     # for j in range(0,1):
-    # for j in range(1,2):
+    for j in range(1,2):
 
         for i in range(0, 1000):
+        # for i in range(0, 200):
 
             if j == 0:
                 if scenario == 1:
@@ -362,7 +361,7 @@ def main(pcap_1="", pcap_2=""):
                 print("Learning {0}".format(i))
             else:
                 return
-            
+
             pcap_1 = None
             pcap_2 = None
 
@@ -419,7 +418,7 @@ def main(pcap_1="", pcap_2=""):
         print("01:0c:cd:01:00:01")
 
         if final_lst_01 :
-        
+
             print("FINAL len {0}".format(len(final_lst_01)))
             print("Average (mean) E2E delay: {0}".format(statistics.mean(final_lst_01)))
             print("Standard deviation: {0}".format(statistics.stdev(final_lst_01)))
@@ -487,7 +486,7 @@ def main(pcap_1="", pcap_2=""):
         print("01:0c:cd:01:00:09")
 
         if final_lst_09 :
-            
+
             print("FINAL len {0}".format(len(final_lst_09)))
             print("Average (mean) E2E delay: {0}".format(statistics.mean(final_lst_09)))
             print("Standard deviation: {0}".format(statistics.stdev(final_lst_09)))
@@ -506,10 +505,11 @@ def main(pcap_1="", pcap_2=""):
             print("Variance: {0}".format(statistics.variance(final_lst_10)))
             print("Min: {0}".format(min(final_lst_10)))
             print("Max: {0}".format(max(final_lst_10)))
+            # Is the below correct?
             print("Standard error of the mean {0}".format(float(statistics.stdev(final_lst_10))/math.sqrt(len(final_lst_10))))
 
         prefix = ""
-        
+
         if scenario == 1:
             # prefix = "scenario_1_CSVs"
             prefix = "scenario_1_CSVs_1000"
@@ -522,66 +522,63 @@ def main(pcap_1="", pcap_2=""):
             print("MIN AVG Latency {0}".format(min([abs(statistics.mean(final_lst_01)), abs(statistics.mean(final_lst_02)), abs(statistics.mean(final_lst_03)), abs(statistics.mean(final_lst_04)), abs(statistics.mean(final_lst_05)), abs(statistics.mean(final_lst_06)), abs(statistics.mean(final_lst_09)), abs(statistics.mean(final_lst_10))])))
 
 
-        # field names 
-        fields = ["Address", "Mean-E2E_Latency"] 
-            
-        # data rows of csv file 
-        rows = [ ["01:0c:cd:01:00:01", statistics.mean(final_lst_01)], 
-                ["01:0c:cd:01:00:02", statistics.mean(final_lst_02)], 
-                ["01:0c:cd:01:00:03", statistics.mean(final_lst_03)], 
+        # field names
+        fields = ["Address", "Mean-E2E_Latency"]
+
+        # data rows of csv file
+        rows = [ ["01:0c:cd:01:00:01", statistics.mean(final_lst_01)],
+                ["01:0c:cd:01:00:02", statistics.mean(final_lst_02)],
+                ["01:0c:cd:01:00:03", statistics.mean(final_lst_03)],
                 ["01:0c:cd:01:00:04", statistics.mean(final_lst_04)]
             ]
-        
+
         if(final_lst_05 and final_lst_06 and final_lst_09 and final_lst_10):
-            # data rows of csv file 
-            rows = [ ["01:0c:cd:01:00:01", statistics.mean(final_lst_01)], 
-                    ["01:0c:cd:01:00:02", statistics.mean(final_lst_02)], 
-                    ["01:0c:cd:01:00:03", statistics.mean(final_lst_03)], 
+            # data rows of csv file
+            rows = [ ["01:0c:cd:01:00:01", statistics.mean(final_lst_01)],
+                    ["01:0c:cd:01:00:02", statistics.mean(final_lst_02)],
+                    ["01:0c:cd:01:00:03", statistics.mean(final_lst_03)],
                     ["01:0c:cd:01:00:04", statistics.mean(final_lst_04)],
                     ["01:0c:cd:01:00:05", statistics.mean(final_lst_05)],
                     ["01:0c:cd:01:00:06", statistics.mean(final_lst_06)],
                     ["01:0c:cd:01:00:09", statistics.mean(final_lst_09)],
                     ["01:0c:cd:01:00:10", statistics.mean(final_lst_10)],
                 ]
-            
+
         if(security):
             sec_bars = [statistics.mean(final_lst_01), statistics.mean(final_lst_02), statistics.mean(final_lst_03), statistics.mean(final_lst_04)]
             sec_bars = [i * 1000 for i in sec_bars]
-                
-            # name of csv file 
-            filename = "{0}/security_results.csv".format(prefix)
+
+            # name of csv file
+            filename = "{0}/security_results_controller.csv".format(prefix)
 
             if(final_lst_05 and final_lst_06 and final_lst_09 and final_lst_10):
                 sec_bars = [statistics.mean(final_lst_01), statistics.mean(final_lst_02), statistics.mean(final_lst_03), statistics.mean(final_lst_04),
                             statistics.mean(final_lst_05), statistics.mean(final_lst_06), statistics.mean(final_lst_09), statistics.mean(final_lst_10)]
                 sec_bars = [i * 1000 for i in sec_bars]
-                    
-                filename = "{0}/security_results_scenario_2.csv".format(prefix)
-                
-          
+
+                filename = "{0}/security_results_controller_scenario_2.csv".format(prefix)
+
+
         else:
             no_sec_bars = [statistics.mean(final_lst_01), statistics.mean(final_lst_02), statistics.mean(final_lst_03), statistics.mean(final_lst_04)]
             no_sec_bars = [i * 1000 for i in no_sec_bars]
 
-            # name of csv file 
-            filename = "{0}/learning_results.csv".format(prefix)
+            # name of csv file
+            filename = "{0}/learning_results_controller.csv".format(prefix)
 
             if(final_lst_05 and final_lst_06 and final_lst_09 and final_lst_10):
                 no_sec_bars = [statistics.mean(final_lst_01), statistics.mean(final_lst_02), statistics.mean(final_lst_03), statistics.mean(final_lst_04),
                             statistics.mean(final_lst_05), statistics.mean(final_lst_06), statistics.mean(final_lst_09), statistics.mean(final_lst_10)]
                 no_sec_bars = [i * 1000 for i in no_sec_bars]
-                    
-                filename = "{0}/learning_results_scenario_2.csv".format(prefix)
-        
-        # writing to csv file 
-        with open(filename, "w") as csvfile: 
-            # creating a csv writer object 
-            csvwriter = csv.writer(csvfile) 
-                
-            # writing the fields 
-            csvwriter.writerow(fields) 
-                
-            # writing the data rows 
+
+                filename = "{0}/learning_results_controller_scenario_2.csv".format(prefix)
+
+        # writing to csv file
+        with open(filename, "w") as csvfile:
+            csvwriter = csv.writer(csvfile)
+
+            csvwriter.writerow(fields)
+
             csvwriter.writerows(rows)
 
 
@@ -589,89 +586,89 @@ def main(pcap_1="", pcap_2=""):
         if(security):
             df = pds.DataFrame([], columns=["01:0c:cd:01:00:01"])
             df["01:0c:cd:01:00:01"] = final_lst_01
-            filepath = Path('./{0}/security_latencies_01.csv'.format(prefix))
+            filepath = Path('./{0}/control_security_latencies_01.csv'.format(prefix))
             df.to_csv(filepath)
-            
+
             df = pds.DataFrame([], columns=["01:0c:cd:01:00:02"])
             df["01:0c:cd:01:00:02"] = final_lst_02
-            filepath = Path('./{0}/security_latencies_02.csv'.format(prefix))
+            filepath = Path('./{0}/control_security_latencies_02.csv'.format(prefix))
             df.to_csv(filepath)
 
             df = pds.DataFrame([], columns=["01:0c:cd:01:00:03"])
             df["01:0c:cd:01:00:03"] = final_lst_03
-            filepath = Path('./{0}/security_latencies_03.csv'.format(prefix))
+            filepath = Path('./{0}/control_security_latencies_03.csv'.format(prefix))
             df.to_csv(filepath)
-        
+
             df = pds.DataFrame([], columns=["01:0c:cd:01:00:04"])
             df["01:0c:cd:01:00:04"] = final_lst_04
-            filepath = Path('./{0}/security_latencies_04.csv'.format(prefix))
+            filepath = Path('./{0}/control_security_latencies_04.csv'.format(prefix))
             df.to_csv(filepath)
 
             if(final_lst_05 and final_lst_06 and final_lst_09 and final_lst_10):
                 df = pds.DataFrame([], columns=["01:0c:cd:01:00:05"])
                 df["01:0c:cd:01:00:05"] = final_lst_05
-                filepath = Path('./{0}/security_latencies_05.csv'.format(prefix))
+                filepath = Path('./{0}/control_security_latencies_05.csv'.format(prefix))
                 df.to_csv(filepath)
 
                 df = pds.DataFrame([], columns=["01:0c:cd:01:00:06"])
                 df["01:0c:cd:01:00:06"] = final_lst_06
-                filepath = Path('./{0}/security_latencies_06.csv'.format(prefix))
+                filepath = Path('./{0}/control_security_latencies_06.csv'.format(prefix))
                 df.to_csv(filepath)
 
                 df = pds.DataFrame([], columns=["01:0c:cd:01:00:09"])
                 df["01:0c:cd:01:00:09"] = final_lst_09
-                filepath = Path('./{0}/security_latencies_09.csv'.format(prefix))
+                filepath = Path('./{0}/control_security_latencies_09.csv'.format(prefix))
                 df.to_csv(filepath)
 
                 df = pds.DataFrame([], columns=["01:0c:cd:01:00:10"])
                 df["01:0c:cd:01:00:10"] = final_lst_10
-                filepath = Path('./{0}/security_latencies_10.csv'.format(prefix))
+                filepath = Path('./{0}/control_security_latencies_10.csv'.format(prefix))
                 df.to_csv(filepath)
 
         else:
             df = pds.DataFrame([], columns=["01:0c:cd:01:00:01"])
             df["01:0c:cd:01:00:01"] = final_lst_01
-            filepath = Path('./{0}/learning_latencies_01.csv'.format(prefix))
+            filepath = Path('./{0}/control_learning_latencies_01.csv'.format(prefix))
             df.to_csv(filepath)
-            
+
             df = pds.DataFrame([], columns=["01:0c:cd:01:00:02"])
             df["01:0c:cd:01:00:02"] = final_lst_02
-            filepath = Path('./{0}/learning_latencies_02.csv'.format(prefix))
+            filepath = Path('./{0}/control_learning_latencies_02.csv'.format(prefix))
             df.to_csv(filepath)
 
             df = pds.DataFrame([], columns=["01:0c:cd:01:00:03"])
             df["01:0c:cd:01:00:03"] = final_lst_03
-            filepath = Path('./{0}/learning_latencies_03.csv'.format(prefix))
+            filepath = Path('./{0}/control_learning_latencies_03.csv'.format(prefix))
             df.to_csv(filepath)
-        
+
             df = pds.DataFrame([], columns=["01:0c:cd:01:00:04"])
             df["01:0c:cd:01:00:04"] = final_lst_04
-            filepath = Path('./{0}/learning_latencies_04.csv'.format(prefix))
+            filepath = Path('./{0}/control_learning_latencies_04.csv'.format(prefix))
             df.to_csv(filepath)
 
             if(final_lst_05 and final_lst_06 and final_lst_09 and final_lst_10):
                 df = pds.DataFrame([], columns=["01:0c:cd:01:00:05"])
                 df["01:0c:cd:01:00:05"] = final_lst_05
-                filepath = Path('./{0}/learning_latencies_05.csv'.format(prefix))
+                filepath = Path('./{0}/control_learning_latencies_05.csv'.format(prefix))
                 df.to_csv(filepath)
 
                 df = pds.DataFrame([], columns=["01:0c:cd:01:00:06"])
                 df["01:0c:cd:01:00:06"] = final_lst_06
-                filepath = Path('./{0}/learning_latencies_06.csv'.format(prefix))
+                filepath = Path('./{0}/control_learning_latencies_06.csv'.format(prefix))
                 df.to_csv(filepath)
 
                 df = pds.DataFrame([], columns=["01:0c:cd:01:00:09"])
                 df["01:0c:cd:01:00:09"] = final_lst_09
-                filepath = Path('./{0}/learning_latencies_09.csv'.format(prefix))
+                filepath = Path('./{0}/control_learning_latencies_09.csv'.format(prefix))
                 df.to_csv(filepath)
 
                 df = pds.DataFrame([], columns=["01:0c:cd:01:00:10"])
                 df["01:0c:cd:01:00:10"] = final_lst_10
-                filepath = Path('./{0}/learning_latencies_10.csv'.format(prefix))
+                filepath = Path('./{0}/control_learning_latencies_10.csv'.format(prefix))
                 df.to_csv(filepath)
 
     return
 
 if __name__ == '__main__':
-    
+
     main()

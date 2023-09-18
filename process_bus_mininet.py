@@ -118,29 +118,10 @@ def main(scenario=0, run=1, security=False):
             os.mkdir(new_dir)
 
         for host in hosts:
-            # print(host.cmd("ip a"))
-            # TODO: These are executed serially, need to be executed in parallel
-            # (threads) so we will not loose packet on either sides.
+            
             if host.name in scenario_1_hosts:
                 host.cmd("tcpdump -i {0}-eth0 -w {1}/exp_{2}_{0}.pcap &".format(host.name, new_dir, run))
                 time.sleep(0.2)
-                # host.cmd("bash -c '/home/mininet/substation_arch_test/goose_CHE_203_generic/goose_CHE_203_generic {0}-eth0 {0}' &".format(host.name))
-
-                # p1 = threading.Thread(target=run_commands, args=(host, ))
-                # p1.start()
-                # p1.join()
-        
-        # rtac = hosts[10]
-        # rtac.cmd("tcpdump -i RTAC-eth0 -w ./exp_1/exp_1_RTAC.pcap &")
-
-        # time.sleep(5)
-        # # print("651R!!!!! {0}".format(hosts[7]))
-        # dev_651R = hosts[7]
-        # dev_651R.cmd("bash -c '/home/mininet/substation_arch_test/goose_CHE_203_generic/goose_CHE_203_generic 651R_2-eth0 651R_2' &")
-
-        # for host in hosts:
-        #     if host.name in scenario_1_hosts:
-        #         host.cmd("bash -c '/home/mininet/substation_arch_test/goose_CHE_203_generic/goose_CHE_203_generic {0}-eth0 {0}' &".format(host.name))
 
         hosts[8].cmd("bash -c '/home/mininet/substation_arch_test/goose_CHE_203_generic/goose_CHE_203_generic 787_2-eth0 787_2' &")
         hosts[3].cmd("bash -c '/home/mininet/substation_arch_test/goose_CHE_203_generic/goose_CHE_203_generic 451_2-eth0 451_2' &")
